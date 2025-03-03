@@ -92,7 +92,7 @@ function initAuthSystem() {
         }
     };
 
-    // Show Sign Up Form
+   // Show Sign Up Form
     showSignUp?.addEventListener("click", (e) => {
         e.preventDefault();
         loginForm.classList.add("hidden");
