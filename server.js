@@ -11,7 +11,7 @@ const JWT_SECRET = process.env.JWT_SECRET || "353d10e6ca05cbe95747846f05bbd288c4
 
 // Enhanced CORS configuration
 app.use(cors({
-    origin: ["http://localhost:3000", "https://www-code-reper-com.onrender.com"],
+    origin: ["http://localhost:3000", "https://www-code-reaper-com.onrender.com"],
     methods: ["GET", "POST", "PUT", "DELETE"],
     allowedHeaders: ["Content-Type", "Authorization"]
 }));
