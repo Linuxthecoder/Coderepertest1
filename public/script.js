@@ -133,36 +133,6 @@ function initAuthSystem() {
         }
     });
 
-    // Sign Up Form Submission
-    signupForm?.addEventListener("submit", async (event) => {
-        event.preventDefault();
-
-        const username = document.getElementById("signup-username").value;
-        const password = document.getElementById("signup-password").value;
-        const email = document.getElementById("signup-email").value;  // Assuming there's an email field
-
-        try {
-            const response = await fetch("/signup", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ username, password, email })
-            });
-
-            const data = await response.json();
-
-            if (response.ok) {
-                // You can automatically log in or show a success message
-                localStorage.setItem("token", data.token);
-                localStorage.setItem("username", data.username);
-                window.location.reload();
-            } else {
-                document.getElementById("error-message").textContent = data.error;
-            }
-        } catch (error) {
-            document.getElementById("error-message").textContent = "An error occurred. Please try again.";
-        }
-    });
-
     // Show Logout Button
     loggedInUser?.addEventListener("click", () => {
         logoutBtn.classList.toggle("hidden");
