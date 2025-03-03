@@ -59,7 +59,45 @@ function initAuthSystem() {
     const signupForm = document.getElementById("signupForm");
     const showSignUp = document.getElementById("showSignUp");
     const showLogin = document.getElementById("showLogin");
+    
+ document.getElementById("signupForm").addEventListener("submit", async (event) => {
+        event.preventDefault(); // Prevent form submission to handle it via JS
 
+        // Get form data
+        const username = document.getElementById("signup-username").value;
+        const password = document.getElementById("signup-password").value;
+        const email = document.getElementById("signup-email").value;
+        const phone = document.getElementById("signup-phone").value;
+
+        try {
+            // Send a POST request to the backend /signup route
+            const response = await fetch("http://localhost:5000/signup", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({ username, password, email, phone })
+            });
+
+            // Get the response data
+            const data = await response.json();
+
+            if (response.ok) {
+                // Show success message
+                document.getElementById("error-message").textContent = data.message;
+                document.getElementById("error-message").style.color = "green";
+            } else {
+                // Show error message
+                document.getElementById("error-message").textContent = data.error;
+                document.getElementById("error-message").style.color = "red";
+            }
+        } catch (error) {
+            // Handle errors during fetch
+            document.getElementById("error-message").textContent = "An error occurred. Please try again.";
+            document.getElementById("error-message").style.color = "red";
+        }
+    });
+    
     // Logout Button
     const logoutBtn = document.createElement("button");
     logoutBtn.textContent = "Logout";
