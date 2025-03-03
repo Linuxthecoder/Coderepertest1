@@ -7,11 +7,11 @@ require('dotenv').config();
 
 const app = express();
 const PORT = process.env.PORT || 5000;
-const JWT_SECRET = process.env.JWT_SECRET || "your_default_jwt_secret";
+const JWT_SECRET = process.env.JWT_SECRET || "353d10e6ca05cbe95747846f05bbd288c45e849a0a1f37d9ccc785fde1198e6cdb5e8bdcbed311a25a0a21cf214dc574e99cb90882921b739a179b213ecd624c";
 
 // Enhanced CORS configuration
 app.use(cors({
-    origin: ["http://localhost:3000", "https://your-frontend-domain.com"],
+    origin: ["http://localhost:3000", "https://www-code-reper-com.onrender.com"],
     methods: ["GET", "POST", "PUT", "DELETE"],
     allowedHeaders: ["Content-Type", "Authorization"]
 }));
