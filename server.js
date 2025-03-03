@@ -20,10 +20,8 @@ app.use(express.json());
 app.use(express.static('public'));
 
 // ===== MongoDB Connection =====
-mongoose.connect(process.env.MONGO_URI || "mongodb+srv://Codereper:75iM273Z4nOh1r0J@website2.v6oux.mongodb.net/?retryWrites=true&w=majority&appName=Website2", {
-    useNewUrlParser: true,
-    useUnifiedTopology: true
-}).then(() => console.log('✅ MongoDB connected'))
+mongoose.connect(process.env.MONGO_URI || "mongodb+srv://Codereper:75iM273Z4nOh1r0J@website2.v6oux.mongodb.net/?retryWrites=true&w=majority&appName=Website2")
+  .then(() => console.log('✅ MongoDB connected'))
   .catch(err => console.error('❌ MongoDB connection error:', err));
 
 // ===== Schemas & Models =====
