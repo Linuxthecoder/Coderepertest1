@@ -51,8 +51,6 @@
                 <p id="signup-error-message" class="error-message"></p>
             </fieldset>
         </form>
-    </div>
-</div>
 </section>
 
 <div class="website-list-container">
@@ -445,6 +443,47 @@
     <footer>
         <p>&copy; 2024 THE SCRIPT WRITER. All rights reserved.</p>
     </footer>
+
+        <!-- JavaScript to handle form submission -->
+<script>
+    document.getElementById("signupForm").addEventListener("submit", async (event) => {
+        event.preventDefault(); // Prevent form submission to handle it via JS
+
+        // Get form data
+        const username = document.getElementById("signup-username").value;
+        const password = document.getElementById("signup-password").value;
+        const email = document.getElementById("signup-email").value;
+        const phone = document.getElementById("signup-phone").value;
+
+        try {
+            // Send a POST request to the backend /signup route
+            const response = await fetch("http://localhost:5000/signup", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({ username, password, email, phone })
+            });
+
+            // Get the response data
+            const data = await response.json();
+
+            if (response.ok) {
+                // Show success message
+                document.getElementById("error-message").textContent = data.message;
+                document.getElementById("error-message").style.color = "green";
+            } else {
+                // Show error message
+                document.getElementById("error-message").textContent = data.error;
+                document.getElementById("error-message").style.color = "red";
+            }
+        } catch (error) {
+            // Handle errors during fetch
+            document.getElementById("error-message").textContent = "An error occurred. Please try again.";
+            document.getElementById("error-message").style.color = "red";
+        }
+    });
+</script>
     
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
     <script src="script.js"></script>
