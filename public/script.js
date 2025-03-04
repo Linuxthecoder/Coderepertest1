@@ -1,7 +1,7 @@
 document.addEventListener("DOMContentLoaded", () => {
     initMatrixEffect();
     initAuthSystem();
-    initWebsiteRequestForm(); // ✅ Now properly defined
+    initWebsiteRequestForm();
     initToggleList();
 });
 
@@ -169,14 +169,19 @@ function initWebsiteRequestForm() {
     });
 }
 
-// ===== Website List Toggle =====
+// ===== Toggle Website List =====
 function initToggleList() {
-    const listBtn = document.getElementById("listToggle");
+    const toggleButton = document.getElementById("toggleList");
     const websiteList = document.getElementById("websiteList");
+    const toggleArrow = document.getElementById("toggleArrow");
 
-    if (listBtn && websiteList) {
-        listBtn.addEventListener("click", () => {
-            websiteList.classList.toggle("hidden");
-        });
-    }
+    toggleButton?.addEventListener("click", () => {
+        if (websiteList.style.display === "none" || websiteList.style.display === "") {
+            websiteList.style.display = "block";
+            toggleArrow.textContent = "▲";
+        } else {
+            websiteList.style.display = "none";
+            toggleArrow.textContent = "▼";
+        }
+    });
 }
