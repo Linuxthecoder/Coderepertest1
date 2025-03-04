@@ -5,50 +5,6 @@ document.addEventListener("DOMContentLoaded", () => {
     initToggleList();
 });
 
-// ===== Matrix Effect =====
-function initMatrixEffect() {
-    const canvas = document.getElementById("matrixCanvas");
-    if (!canvas) return;
-
-    const ctx = canvas.getContext("2d");
-
-    function resizeCanvas() {
-        const header = document.querySelector("header");
-        canvas.width = header.clientWidth;
-        canvas.height = header.clientHeight;
-    }
-
-    resizeCanvas();
-    window.addEventListener("resize", resizeCanvas);
-
-    const letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ123456789@#$%^&*()";
-    const matrix = letters.split("");
-
-    const fontSize = 16;
-    const columns = Math.floor(canvas.width / fontSize);
-    const drops = Array(columns).fill(0);
-
-    function drawMatrix() {
-        ctx.fillStyle = "rgba(0, 0, 0, 0.1)";
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-        ctx.fillStyle = "limegreen";
-        ctx.font = `${fontSize}px monospace`;
-
-        for (let i = 0; i < drops.length; i++) {
-            const text = matrix[Math.floor(Math.random() * matrix.length)];
-            ctx.fillText(text, i * fontSize, drops[i] * fontSize);
-
-            if (drops[i] * fontSize > canvas.height && Math.random() > 0.975) {
-                drops[i] = 0;
-            }
-            drops[i]++;
-        }
-    }
-
-    setInterval(drawMatrix, 50);
-}
-
 // ===== Authentication System =====
 function initAuthSystem() {
     const loginModal = document.getElementById("authModal");
@@ -59,58 +15,14 @@ function initAuthSystem() {
     const signupForm = document.getElementById("signupForm");
     const showSignUp = document.getElementById("showSignUp");
     const showLogin = document.getElementById("showLogin");
-    
- document.getElementById("signupForm").addEventListener("submit", async (event) => {
-        event.preventDefault(); // Prevent form submission to handle it via JS
+    const errorMessage = document.getElementById("error-message");
 
-        // Get form data
-        const username = document.getElementById("signup-username").value;
-        const password = document.getElementById("signup-password").value;
-        const email = document.getElementById("signup-email").value;
-        const phone = document.getElementById("signup-phone").value;
-
-        try {
-            // Send a POST request to the backend /signup route
-            const response = await fetch("http://localhost:5000/signup", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json"
-                },
-                body: JSON.stringify({ username, password, email, phone })
-            });
-
-            // Get the response data
-            const data = await response.json();
-
-            if (response.ok) {
-                // Show success message
-                document.getElementById("error-message").textContent = data.message;
-                document.getElementById("error-message").style.color = "green";
-            } else {
-                // Show error message
-                document.getElementById("error-message").textContent = data.error;
-                document.getElementById("error-message").style.color = "red";
-            }
-        } catch (error) {
-            // Handle errors during fetch
-            document.getElementById("error-message").textContent = "An error occurred. Please try again.";
-            document.getElementById("error-message").style.color = "red";
-        }
-    });
-    
-    // Logout Button
-    const logoutBtn = document.createElement("button");
-    logoutBtn.textContent = "Logout";
-    logoutBtn.classList.add("logout-btn", "hidden");
-
+    // Check for existing session
     const storedUser = localStorage.getItem("username");
     if (storedUser) {
         openLoginBtn.classList.add("hidden");
         loggedInUser.textContent = storedUser;
         loggedInUser.classList.remove("hidden");
-
-        loggedInUser.parentElement.appendChild(logoutBtn);
-        logoutBtn.classList.remove("hidden");
     }
 
     // Open Login Modal
@@ -130,7 +42,7 @@ function initAuthSystem() {
         }
     };
 
-   // Show Sign Up Form
+    // Show Sign Up Form
     showSignUp?.addEventListener("click", (e) => {
         e.preventDefault();
         loginForm.classList.add("hidden");
@@ -144,6 +56,38 @@ function initAuthSystem() {
         loginForm.classList.remove("hidden");
     });
 
+    // Sign Up Form Submission (Fixed)
+    signupForm?.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        const username = document.getElementById("signup-username").value;
+        const password = document.getElementById("signup-password").value;
+        const email = document.getElementById("signup-email").value;
+        const phone = document.getElementById("signup-phone").value;
+
+        try {
+            const response = await fetch("http://localhost:5000/signup", { // Update if deployed
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ username, password, email, phone }),
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                errorMessage.textContent = data.message;
+                errorMessage.style.color = "green";
+                signupForm.reset();
+                showLogin.click(); // Redirect to login form
+            } else {
+                errorMessage.textContent = data.error;
+                errorMessage.style.color = "red";
+            }
+        } catch (error) {
+            errorMessage.textContent = "An error occurred. Please try again.";
+            errorMessage.style.color = "red";
+        }
+    });
+
     // Login Form Submission
     loginForm?.addEventListener("submit", async (e) => {
         e.preventDefault();
@@ -151,7 +95,7 @@ function initAuthSystem() {
         const password = document.getElementById("login-password").value;
 
         try {
-            const response = await fetch("/login", {
+            const response = await fetch("http://localhost:5000/login", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ username, password }),
@@ -165,81 +109,12 @@ function initAuthSystem() {
                 loggedInUser.classList.remove("hidden");
                 loginModal.style.display = "none";
             } else {
-                document.getElementById("error-message").textContent = data.error;
+                errorMessage.textContent = data.error;
+                errorMessage.style.color = "red";
             }
         } catch (error) {
-            document.getElementById("error-message").textContent = "An error occurred. Please try again.";
-        }
-    });
-
-    // SignUp Form Submission
-    signupForm?.addEventListener("submit", async (event) => {
-        event.preventDefault();
-        const username = document.getElementById("signup-username").value;
-        const password = document.getElementById("signup-password").value;
-        const email = document.getElementById("signup-email").value;
-        const phone = document.getElementById("signup-phone").value;
-
-        try {
-            const response = await fetch("/signup", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ username, password, email, phone }),
-            });
-
-            const data = await response.json();
-            if (response.ok) {
-                document.getElementById("success-message").textContent = data.message;
-                document.getElementById("error-message").textContent = "";
-                signupForm.reset();
-                showLogin.click();
-            } else {
-                document.getElementById("error-message").textContent = data.error;
-            }
-        } catch (error) {
-            document.getElementById("error-message").textContent = "An error occurred. Please try again.";
-        }
-    });
-
-    // Logout User
-    logoutBtn?.addEventListener("click", () => {
-        localStorage.removeItem("username");
-        loggedInUser.textContent = '';
-        loggedInUser.classList.add("hidden");
-        openLoginBtn.classList.remove("hidden");
-        logoutBtn.classList.add("hidden");
-    });
-}
-
-// ===== Website Request Form Submission =====
-function initWebsiteRequestForm() {
-    const requestForm = document.getElementById("requestForm");
-    const requestStatus = document.getElementById("requestStatus");
-
-    requestForm?.addEventListener("submit", async (event) => {
-        event.preventDefault();
-
-        const phone = document.getElementById("requestPhone").value;
-        const type = document.getElementById("websiteType").value;
-        const requirements = document.getElementById("requirements").value;
-
-        try {
-            const response = await fetch("/request", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    "Authorization": `Bearer ${localStorage.getItem("jwt")}`
-                },
-                body: JSON.stringify({ phone, type, requirements }),
-            });
-
-            const data = await response.json();
-            requestStatus.textContent = data.message;
-            requestStatus.style.display = 'block';
-        } catch (error) {
-            requestStatus.textContent = "An error occurred. Please try again.";
-            requestStatus.style.display = 'block';
+            errorMessage.textContent = "An error occurred. Please try again.";
+            errorMessage.style.color = "red";
         }
     });
 }
-
