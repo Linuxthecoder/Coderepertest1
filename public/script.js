@@ -49,22 +49,6 @@ function initMatrixEffect() {
     setInterval(drawMatrix, 50);
 }
 
-// ===== Toggle Website List =====
-function initToggleList() {
-    const toggleButton = document.getElementById("toggleList");
-    const websiteList = document.getElementById("websiteList");
-    const toggleArrow = document.getElementById("toggleArrow");
-
-    toggleButton?.addEventListener("click", () => {
-        if (websiteList.style.display === "none" || websiteList.style.display === "") {
-            websiteList.style.display = "block";
-            toggleArrow.textContent = "▲";
-        } else {
-            websiteList.style.display = "none";
-            toggleArrow.textContent = "▼";
-        }
-    });
-}
 // ===== Authentication System =====
 function initAuthSystem() {
     const loginModal = document.getElementById("authModal");
@@ -75,14 +59,20 @@ function initAuthSystem() {
     const signupForm = document.getElementById("signupForm");
     const showSignUp = document.getElementById("showSignUp");
     const showLogin = document.getElementById("showLogin");
-    const errorMessage = document.getElementById("error-message");
 
-    // Check for existing session
+    // Logout Button
+    const logoutBtn = document.createElement("button");
+    logoutBtn.textContent = "Logout";
+    logoutBtn.classList.add("logout-btn", "hidden");
+
     const storedUser = localStorage.getItem("username");
     if (storedUser) {
         openLoginBtn.classList.add("hidden");
         loggedInUser.textContent = storedUser;
         loggedInUser.classList.remove("hidden");
+
+        loggedInUser.parentElement.appendChild(logoutBtn);
+        logoutBtn.classList.remove("hidden");
     }
 
     // Open Login Modal
@@ -116,66 +106,103 @@ function initAuthSystem() {
         loginForm.classList.remove("hidden");
     });
 
-    // Sign Up Form Submission (Fixed)
-    signupForm?.addEventListener("submit", async (event) => {
-        event.preventDefault();
-        const username = document.getElementById("signup-username").value;
-        const password = document.getElementById("signup-password").value;
-        const email = document.getElementById("signup-email").value;
-        const phone = document.getElementById("signup-phone").value;
-
-        try {
-            const response = await fetch("http://localhost:5000/signup", { // Update if deployed
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ username, password, email, phone }),
-            });
-
-            const data = await response.json();
-
-            if (response.ok) {
-                errorMessage.textContent = data.message;
-                errorMessage.style.color = "green";
-                signupForm.reset();
-                showLogin.click(); // Redirect to login form
-            } else {
-                errorMessage.textContent = data.error;
-                errorMessage.style.color = "red";
-            }
-        } catch (error) {
-            errorMessage.textContent = "An error occurred. Please try again.";
-            errorMessage.style.color = "red";
-        }
-    });
-
     // Login Form Submission
-    loginForm?.addEventListener("submit", async (e) => {
-        e.preventDefault();
+    loginForm?.addEventListener("submit", async (event) => {
+        event.preventDefault();
+
         const username = document.getElementById("login-username").value;
         const password = document.getElementById("login-password").value;
 
         try {
-            const response = await fetch("http://localhost:5000/login", {
+            const response = await fetch("/login", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ username, password }),
             });
 
             const data = await response.json();
-
             if (response.ok) {
-                localStorage.setItem("username", username);
-                loggedInUser.textContent = username;
-                loggedInUser.classList.remove("hidden");
-                loginModal.style.display = "none";
+                localStorage.setItem("token", data.token);
+                localStorage.setItem("username", data.username);
+                window.location.reload();
             } else {
-                errorMessage.textContent = data.error;
-                errorMessage.style.color = "red";
+                document.getElementById("error-message").textContent = data.error;
             }
         } catch (error) {
-            errorMessage.textContent = "An error occurred. Please try again.";
-            errorMessage.style.color = "red";
+            document.getElementById("error-message").textContent = "An error occurred. Please try again.";
         }
+    });
+
+    // Show Logout Button
+    loggedInUser?.addEventListener("click", () => {
+        logoutBtn.classList.toggle("hidden");
+    });
+
+    // Logout Functionality
+    logoutBtn?.addEventListener("click", () => {
+        localStorage.removeItem("token");
+        localStorage.removeItem("username");
+        window.location.reload();
     });
 }
 
+// ===== Website Request Form =====
+function initWebsiteRequestForm() {
+    const requestForm = document.getElementById("requestForm");
+    const messageDiv = document.getElementById("requestStatus");
+
+    requestForm?.addEventListener("submit", async (event) => {
+        event.preventDefault();
+
+        if (!localStorage.getItem("token")) {
+            messageDiv.textContent = "Please login first.";
+            messageDiv.className = "message error";
+            messageDiv.hidden = false;
+            return;
+        }
+
+        const formData = {
+            phone: document.getElementById("requestPhone").value,
+            type: document.getElementById("websiteType").value,
+            requirements: document.getElementById("requirements").value,
+            username: localStorage.getItem("username"),
+        };
+
+        try {
+            await fetch("/request", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${localStorage.getItem("token")}`,
+                },
+                body: JSON.stringify(formData),
+            });
+
+            messageDiv.textContent = "Request submitted successfully!";
+            messageDiv.className = "message success";
+            requestForm.reset();
+        } catch (error) {
+            messageDiv.textContent = "An error occurred. Please try again.";
+            messageDiv.className = "message error";
+        }
+
+        messageDiv.hidden = false;
+    });
+}
+
+// ===== Toggle Website List =====
+function initToggleList() {
+    const toggleButton = document.getElementById("toggleList");
+    const websiteList = document.getElementById("websiteList");
+    const toggleArrow = document.getElementById("toggleArrow");
+
+    toggleButton?.addEventListener("click", () => {
+        if (websiteList.style.display === "none" || websiteList.style.display === "") {
+            websiteList.style.display = "block";
+            toggleArrow.textContent = "▲";
+        } else {
+            websiteList.style.display = "none";
+            toggleArrow.textContent = "▼";
+        }
+    });
+}
