@@ -1,8 +1,7 @@
-
 document.addEventListener("DOMContentLoaded", () => {
     initMatrixEffect();
     initAuthSystem();
-    initWebsiteRequestForm();
+    initWebsiteRequestForm(); // ✅ Now properly defined
     initToggleList();
 });
 
@@ -49,14 +48,8 @@ function initMatrixEffect() {
 
     setInterval(drawMatrix, 50);
 }
-document.addEventListener("DOMContentLoaded", () => {
-    initMatrixEffect();
-    initAuthSystem();
-    initWebsiteRequestForm();
-    initToggleList();
-});
 
-// ===== Authentication System (Updated) =====
+// ===== Authentication System =====
 function initAuthSystem() {
     const loginModal = document.getElementById("authModal");
     const openLoginBtn = document.getElementById("openLogin");
@@ -67,12 +60,10 @@ function initAuthSystem() {
     const showSignUp = document.getElementById("showSignUp");
     const showLogin = document.getElementById("showLogin");
 
-    // Logout Button
     const logoutBtn = document.createElement("button");
     logoutBtn.textContent = "Logout";
     logoutBtn.classList.add("logout-btn", "hidden");
 
-    // Check for stored login session
     const storedUser = localStorage.getItem("username");
     if (storedUser) {
         openLoginBtn.classList.add("hidden");
@@ -83,13 +74,11 @@ function initAuthSystem() {
         logoutBtn.classList.remove("hidden");
     }
 
-    // Open Login Modal
     openLoginBtn?.addEventListener("click", (e) => {
         e.preventDefault();
         loginModal.style.display = "flex";
     });
 
-    // Close Login Modal
     closeModalBtn?.addEventListener("click", () => {
         loginModal.style.display = "none";
     });
@@ -100,14 +89,12 @@ function initAuthSystem() {
         }
     };
 
-    // Show Sign Up Form
     showSignUp?.addEventListener("click", (e) => {
         e.preventDefault();
         loginForm.classList.add("hidden");
         signupForm.classList.remove("hidden");
     });
 
-    // Show Login Form
     showLogin?.addEventListener("click", (e) => {
         e.preventDefault();
         signupForm.classList.add("hidden");
@@ -122,63 +109,74 @@ function initAuthSystem() {
         const phone = document.getElementById("signup-phone").value;
         const username = document.getElementById("signup-username").value;
         const password = document.getElementById("signup-password").value;
+        const email = document.getElementById("signup-email").value; // ✅ Fix: Ensure email is sent
 
         try {
             const response = await fetch("/signup", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ name, phone, username, password }),
+                body: JSON.stringify({ name, phone, username, password, email }),
             });
 
             const data = await response.json();
             if (response.ok) {
                 alert("Signup successful! Please log in.");
                 signupForm.reset();
-                showLogin.click(); // Switch to login form
+                showLogin.click();
             } else {
-                alert(data.message || "Signup failed");
+                alert(data.error || "Signup failed");
             }
         } catch (error) {
             alert("An error occurred. Please try again.");
         }
     });
+}
 
-    // **Login Form Submission**
-    loginForm?.addEventListener("submit", async (event) => {
+// ===== Website Request Form Handler =====
+function initWebsiteRequestForm() {
+    const requestForm = document.getElementById("requestForm");
+    
+    if (!requestForm) return;
+
+    requestForm.addEventListener("submit", async (event) => {
         event.preventDefault();
 
-        const username = document.getElementById("login-username").value;
-        const password = document.getElementById("login-password").value;
+        const phone = document.getElementById("request-phone").value;
+        const type = document.getElementById("request-type").value;
+        const requirements = document.getElementById("request-requirements").value;
 
         try {
-            const response = await fetch("/login", {
+            const token = localStorage.getItem("token");
+            const response = await fetch("/request", {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ username, password }),
+                headers: { 
+                    "Content-Type": "application/json",
+                    "Authorization": `Bearer ${token}` 
+                },
+                body: JSON.stringify({ phone, type, requirements }),
             });
 
             const data = await response.json();
             if (response.ok) {
-                localStorage.setItem("token", data.token);
-                localStorage.setItem("username", username);
-                window.location.reload();
+                alert("Website request submitted successfully!");
+                requestForm.reset();
             } else {
-                alert(data.message || "Login failed");
+                alert(data.error || "Request failed");
             }
         } catch (error) {
             alert("An error occurred. Please try again.");
         }
     });
+}
 
-    // Show Logout Button on Click
-    loggedInUser?.addEventListener("click", () => {
-        logoutBtn.classList.toggle("hidden");
-    });
+// ===== Website List Toggle =====
+function initToggleList() {
+    const listBtn = document.getElementById("listToggle");
+    const websiteList = document.getElementById("websiteList");
 
-    // **Logout Functionality**
-    logoutBtn?.addEventListener("click", () => {
-        localStorage.removeItem("token");
-        localStorage.removeItem("username");
-        window.location.reload();
-    });
+    if (listBtn && websiteList) {
+        listBtn.addEventListener("click", () => {
+            websiteList.classList.toggle("hidden");
+        });
+    }
 }
