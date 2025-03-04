@@ -18,11 +18,12 @@ app.use(cors({
 }));
 
 app.use(express.json());
+app.use(express.urlencoded({ extended: true })); // Allow form data parsing
 app.use(express.static('public'));
 
 // 📡 MongoDB Connection
 mongoose.set('strictQuery', true);
-mongoose.set('debug', true); // Logs MongoDB queries for debugging
+mongoose.set('debug', true);
 
 mongoose.connect(process.env.MONGO_URI || "mongodb+srv://Codereper:75iM273Z4nOh1r0J@website2.v6oux.mongodb.net/?retryWrites=true&w=majority&appName=Website2")
   .then(() => console.log('✅ MongoDB connected'))
@@ -37,25 +38,7 @@ const UserSchema = new mongoose.Schema({
     createdAt: { type: Date, default: Date.now }
 });
 
-const WebsiteRequestSchema = new mongoose.Schema({
-    username: String,
-    phone: String,
-    type: String,
-    requirements: String,
-    timestamp: { type: Date, default: Date.now },
-    status: { type: String, default: 'pending' }
-});
-
-const ContactSchema = new mongoose.Schema({
-    name: String,
-    email: String,
-    message: String,
-    timestamp: { type: Date, default: Date.now }
-});
-
 const User = mongoose.model('User', UserSchema);
-const WebsiteRequest = mongoose.model('WebsiteRequest', WebsiteRequestSchema);
-const Contact = mongoose.model('Contact', ContactSchema);
 
 // 🔑 Middleware: Verify JWT Token
 const verifyToken = (req, res, next) => {
@@ -74,7 +57,7 @@ const verifyToken = (req, res, next) => {
     }
 };
 
-// 🔹 SIGNUP Route
+// ✅ SIGNUP Route
 app.post('/signup', async (req, res) => {
     try {
         console.log("📩 Signup request received:", req.body);
@@ -85,16 +68,16 @@ app.post('/signup', async (req, res) => {
             return res.status(400).json({ error: "Username, password, and email are required." });
         }
 
-        // Check if the username already exists
-        const existingUsername = await User.findOne({ username });
-        if (existingUsername) {
-            return res.status(400).json({ error: "Username already taken." });
+        // Validate Email Format
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email)) {
+            return res.status(400).json({ error: "Invalid email format." });
         }
 
-        // Check if the email already exists
-        const existingEmail = await User.findOne({ email });
-        if (existingEmail) {
-            return res.status(400).json({ error: "Email already in use." });
+        // Check if username or email already exists
+        const existingUser = await User.findOne({ $or: [{ username }, { email }] });
+        if (existingUser) {
+            return res.status(400).json({ error: "Username or email already taken." });
         }
 
         // Hash the password
@@ -102,7 +85,6 @@ app.post('/signup', async (req, res) => {
 
         const newUser = new User({ username, password: hashedPassword, email, phone });
 
-        // Save the new user to the database
         await newUser.save();
         console.log("✅ New user registered:", newUser);
 
@@ -113,13 +95,13 @@ app.post('/signup', async (req, res) => {
     }
 });
 
-// 🔹 LOGIN Route
+// ✅ LOGIN Route
 app.post('/login', async (req, res) => {
     try {
         console.log("🔑 Login request received:", req.body);
         const { username, password } = req.body;
-        const user = await User.findOne({ username });
 
+        const user = await User.findOne({ username });
         if (!user) return res.status(401).json({ error: 'Invalid username or password' });
 
         const isMatch = await bcrypt.compare(password, user.password);
@@ -134,52 +116,7 @@ app.post('/login', async (req, res) => {
     }
 });
 
-// 🔹 Website Request (Protected)
-app.post('/request', verifyToken, async (req, res) => {
-    try {
-        console.log("📨 Website request received:", req.body);
-
-        if (!req.body.phone || !req.body.type || !req.body.requirements) {
-            return res.status(400).json({ error: "All fields are required." });
-        }
-
-        const newRequest = new WebsiteRequest({
-            username: req.user.username,
-            phone: req.body.phone,
-            type: req.body.type,
-            requirements: req.body.requirements
-        });
-
-        await newRequest.save();
-        res.status(201).json({ message: "🎯 Website request submitted successfully!" });
-    } catch (error) {
-        console.error("❌ Request error:", error);
-        res.status(500).json({ error: "Error processing request. Please try again." });
-    }
-});
-
-// 🔹 Contact Form Submission
-app.post('/contact', async (req, res) => {
-    try {
-        console.log("📩 Contact form submitted:", req.body);
-
-        const { name, email, message } = req.body;
-
-        if (!name || !email || !message) {
-            return res.status(400).json({ error: "All fields are required." });
-        }
-
-        const newContact = new Contact({ name, email, message });
-
-        await newContact.save();
-        res.status(201).json({ message: '📩 Message received successfully!' });
-    } catch (error) {
-        console.error("❌ Contact error:", error);
-        res.status(500).json({ error: 'Error submitting message. Try again later.' });
-    }
-});
-
-// 🔹 GET Users (For Testing)
+// ✅ GET Users (For Testing)
 app.get('/users', async (req, res) => {
     try {
         const users = await User.find({}, { password: 0 }); // Exclude password for security
