@@ -162,3 +162,19 @@ function initAuthSystem() {
         }
     });
 }
+// ===== Toggle Website List =====
+function initToggleList() {
+    const toggleButton = document.getElementById("toggleList");
+    const websiteList = document.getElementById("websiteList");
+    const toggleArrow = document.getElementById("toggleArrow");
+
+    toggleButton?.addEventListener("click", () => {
+        if (websiteList.style.display === "none" || websiteList.style.display === "") {
+            websiteList.style.display = "block";
+            toggleArrow.textContent = "▲";
+        } else {
+            websiteList.style.display = "none";
+            toggleArrow.textContent = "▼";
+        }
+    });
+}
