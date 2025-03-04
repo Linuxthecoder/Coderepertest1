@@ -23,10 +23,9 @@ app.use(express.static('public'));
 mongoose.set('strictQuery', true);
 mongoose.set('debug', true); // Logs MongoDB queries for debugging
 
-// Connect to MongoDB
 mongoose.connect(process.env.MONGO_URI || "mongodb+srv://Codereper:75iM273Z4nOh1r0J@website2.v6oux.mongodb.net/?retryWrites=true&w=majority&appName=Website2")
-    .then(() => console.log('✅ MongoDB connected'))
-    .catch(err => console.error('❌ MongoDB connection error:', err));
+  .then(() => console.log('✅ MongoDB connected'))
+  .catch(err => console.error('❌ MongoDB connection error:', err));
 
 // 🏛️ Schemas & Models
 const UserSchema = new mongoose.Schema({
@@ -80,20 +79,29 @@ app.post('/signup', async (req, res) => {
         console.log("📩 Signup request received:", req.body);
 
         const { username, password, email, phone } = req.body;
+
         if (!username || !password || !email) {
             return res.status(400).json({ error: "All fields are required." });
         }
 
-        if (await User.findOne({ username })) {
+        // Check if the username already exists
+        const existingUsername = await User.findOne({ username });
+        if (existingUsername) {
             return res.status(400).json({ error: "Username already taken." });
         }
-        if (await User.findOne({ email })) {
+
+        // Check if the email already exists
+        const existingEmail = await User.findOne({ email });
+        if (existingEmail) {
             return res.status(400).json({ error: "Email already in use." });
         }
 
+        // Hash the password
         const hashedPassword = await bcrypt.hash(password, 10);
+
         const newUser = new User({ username, password: hashedPassword, email, phone });
 
+        // Save the new user to the database
         await newUser.save();
         console.log("✅ New user registered:", newUser);
 
