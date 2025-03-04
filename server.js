@@ -13,7 +13,8 @@ const JWT_SECRET = process.env.JWT_SECRET || "25f9f32ec38291b4dca8f6485232e4696c
 app.use(cors({
     origin: ["http://localhost:3000", "https://www-code-reaper-com.onrender.com"],
     methods: ["GET", "POST", "PUT", "DELETE"],
-    allowedHeaders: ["Content-Type", "Authorization"]
+    allowedHeaders: ["Content-Type", "Authorization"],
+    credentials: true
 }));
 
 app.use(express.json());
@@ -32,7 +33,7 @@ const UserSchema = new mongoose.Schema({
     username: { type: String, unique: true, required: true },
     password: { type: String, required: true },
     email: { type: String, unique: true, required: true },
-    phone: String,
+    phone: { type: String, required: false },
     createdAt: { type: Date, default: Date.now }
 });
 
@@ -81,7 +82,7 @@ app.post('/signup', async (req, res) => {
         const { username, password, email, phone } = req.body;
 
         if (!username || !password || !email) {
-            return res.status(400).json({ error: "All fields are required." });
+            return res.status(400).json({ error: "Username, password, and email are required." });
         }
 
         // Check if the username already exists
@@ -138,6 +139,10 @@ app.post('/request', verifyToken, async (req, res) => {
     try {
         console.log("📨 Website request received:", req.body);
 
+        if (!req.body.phone || !req.body.type || !req.body.requirements) {
+            return res.status(400).json({ error: "All fields are required." });
+        }
+
         const newRequest = new WebsiteRequest({
             username: req.user.username,
             phone: req.body.phone,
@@ -159,6 +164,11 @@ app.post('/contact', async (req, res) => {
         console.log("📩 Contact form submitted:", req.body);
 
         const { name, email, message } = req.body;
+
+        if (!name || !email || !message) {
+            return res.status(400).json({ error: "All fields are required." });
+        }
+
         const newContact = new Contact({ name, email, message });
 
         await newContact.save();
