@@ -23,9 +23,10 @@ app.use(express.static('public'));
 mongoose.set('strictQuery', true);
 mongoose.set('debug', true); // Logs MongoDB queries for debugging
 
-mongoose.connect(process.env.MONGO_URI || "your_mongo_connection_string_here")
-  .then(() => console.log('✅ MongoDB connected'))
-  .catch(err => console.error('❌ MongoDB connection error:', err));
+// Connect to MongoDB
+mongoose.connect(process.env.MONGO_URI || "mongodb+srv://Codereper:75iM273Z4nOh1r0J@website2.v6oux.mongodb.net/?retryWrites=true&w=majority&appName=Website2")
+    .then(() => console.log('✅ MongoDB connected'))
+    .catch(err => console.error('❌ MongoDB connection error:', err));
 
 // 🏛️ Schemas & Models
 const UserSchema = new mongoose.Schema({
