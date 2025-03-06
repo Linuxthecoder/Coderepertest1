@@ -35,6 +35,7 @@ const UserSchema = new mongoose.Schema({
     password: { type: String, required: true },
     email: { type: String, unique: true, required: true },
     phone: { type: String, required: false },
+    profilePic: { type: String, default: "https://ui-avatars.com/api/?name=User" },
     createdAt: { type: Date, default: Date.now }
 });
 
@@ -61,29 +62,24 @@ const verifyToken = (req, res, next) => {
 app.post('/signup', async (req, res) => {
     try {
         console.log("📩 Signup request received:", req.body);
-
-        const { username, password, email, phone } = req.body;
+        const { username, password, email, phone, profilePic } = req.body;
 
         if (!username || !password || !email) {
             return res.status(400).json({ error: "Username, password, and email are required." });
         }
 
-        // Validate Email Format
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         if (!emailRegex.test(email)) {
             return res.status(400).json({ error: "Invalid email format." });
         }
 
-        // Check if username or email already exists
         const existingUser = await User.findOne({ $or: [{ username }, { email }] });
         if (existingUser) {
             return res.status(400).json({ error: "Username or email already taken." });
         }
 
-        // Hash the password
         const hashedPassword = await bcrypt.hash(password, 10);
-
-        const newUser = new User({ username, password: hashedPassword, email, phone });
+        const newUser = new User({ username, password: hashedPassword, email, phone, profilePic });
 
         await newUser.save();
         console.log("✅ New user registered:", newUser);
@@ -107,9 +103,9 @@ app.post('/login', async (req, res) => {
         const isMatch = await bcrypt.compare(password, user.password);
         if (!isMatch) return res.status(401).json({ error: 'Invalid username or password' });
 
-        const token = jwt.sign({ userId: user._id, username: user.username }, JWT_SECRET, { expiresIn: '2h' });
+        const token = jwt.sign({ userId: user._id, username: user.username, profilePic: user.profilePic }, JWT_SECRET, { expiresIn: '2h' });
 
-        res.json({ token, username: user.username, message: '✅ Login successful!' });
+        res.json({ token, username: user.username, profilePic: user.profilePic, message: '✅ Login successful!' });
     } catch (error) {
         console.error("❌ Login error:", error);
         res.status(500).json({ error: 'Server error. Try again later.' });
@@ -119,7 +115,7 @@ app.post('/login', async (req, res) => {
 // ✅ GET Users (For Testing)
 app.get('/users', async (req, res) => {
     try {
-        const users = await User.find({}, { password: 0 }); // Exclude password for security
+        const users = await User.find({}, { password: 0 });
         res.json(users);
     } catch (error) {
         console.error("❌ Fetch users error:", error);
