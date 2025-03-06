@@ -406,6 +406,12 @@
     </form>
 </section>
 
+<!-- Login Button or Username -->
+<div class="user-info">
+    <button id="openLogin">Login</button>
+    <div id="loggedInUser" class="hidden"></div>
+</div>
+
 <!-- Logout Confirmation Modal -->
 <div id="logoutModal" class="modal hidden">
     <div class="modal-content">
@@ -416,6 +422,35 @@
 </div>
 
 <style>
+/* User Profile Dropdown */
+.user-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    margin-right: 10px;
+}
+
+.user-info {
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+}
+
+.dropdown {
+    display: none;
+    position: absolute;
+    top: 50px;
+    right: 10px;
+    background: white;
+    padding: 10px;
+    border-radius: 5px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+}
+
+.user-info:hover .dropdown {
+    display: block;
+}
+
 /* Modal Styling */
 .modal {
     display: none;
@@ -441,12 +476,6 @@
     display: none;
 }
 </style>
-
-              <p class="social-link">
-      <a href="https://www.instagram.com/the.script.writer/" target="_blank">
-        <i class="fab fa-instagram"></i> If you face any problem regarding the website contact me on Instagram.
-      </a>
-    </p>
 
     <footer>
         <p>&copy; 2024 THE SCRIPT WRITER. All rights reserved.</p>
