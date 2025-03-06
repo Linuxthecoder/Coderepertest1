@@ -5,13 +5,15 @@ document.addEventListener("DOMContentLoaded", () => {
     initToggleList();
 });
 
-// ===== Toggle Website List Fix =====
+// ===== Toggle Website List =====
 function initToggleList() {
     const toggleButton = document.getElementById("toggleList");
     const websiteList = document.getElementById("websiteList");
     const toggleArrow = document.getElementById("toggleArrow");
 
-    toggleButton?.addEventListener("click", () => {
+    if (!toggleButton || !websiteList || !toggleArrow) return;
+
+    toggleButton.addEventListener("click", () => {
         websiteList.classList.toggle("hidden");
         toggleArrow.textContent = websiteList.classList.contains("hidden") ? "▼" : "▲";
     });
@@ -21,32 +23,38 @@ function initToggleList() {
 function initAuthSystem() {
     const loginModal = document.getElementById("authModal");
     const openLoginBtn = document.getElementById("openLogin");
-    const closeModalBtn = document.querySelector("#authModal .close");
     const loggedInUser = document.getElementById("loggedInUser");
+    const closeModalBtn = document.querySelector("#authModal .close");
     const loginForm = document.getElementById("loginForm");
-    const logoutModal = document.getElementById("logoutModal");
-    const confirmLogoutBtn = document.getElementById("confirmLogout");
-    const cancelLogoutBtn = document.getElementById("cancelLogout");
+    const profileContainer = document.createElement("div");
+    profileContainer.classList.add("profile-container", "hidden");
 
-    // Check if user is already logged in
-    const storedUser = localStorage.getItem("username");
-    if (storedUser) {
-        showUserProfile(storedUser);
+    openLoginBtn?.parentElement.appendChild(profileContainer);
+
+    function updateUI(username, profilePic) {
+        openLoginBtn.classList.add("hidden");
+        loggedInUser.textContent = username;
+        loggedInUser.classList.remove("hidden");
+        profileContainer.innerHTML = `<img src="${profilePic}" class="profile-pic">`;
+        profileContainer.classList.remove("hidden");
     }
 
-    openLoginBtn?.addEventListener("click", (e) => {
-        e.preventDefault();
-        loginModal.style.display = "flex";
-    });
+    function showLogoutPopup() {
+        const confirmLogout = confirm("Are you sure you want to logout?");
+        if (confirmLogout) {
+            localStorage.removeItem("token");
+            localStorage.removeItem("username");
+            openLoginBtn.classList.remove("hidden");
+            loggedInUser.classList.add("hidden");
+            profileContainer.classList.add("hidden");
+            alert("You have successfully logged out.");
+        }
+    }
 
-    closeModalBtn?.addEventListener("click", () => {
-        loginModal.style.display = "none";
-    });
+    profileContainer.addEventListener("click", showLogoutPopup);
 
-    // Handle login form submission
     loginForm?.addEventListener("submit", async (event) => {
         event.preventDefault();
-
         const username = document.getElementById("login-username").value;
         const password = document.getElementById("login-password").value;
 
@@ -54,57 +62,25 @@ function initAuthSystem() {
             const response = await fetch("/login", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ username, password }),
+                body: JSON.stringify({ username, password })
             });
-
             const data = await response.json();
+
             if (response.ok) {
-                localStorage.setItem("username", data.username);
                 localStorage.setItem("token", data.token);
-                showUserProfile(data.username);
+                localStorage.setItem("username", data.username);
+                updateUI(data.username, data.profilePic || "https://ui-avatars.com/api/?name=" + data.username);
                 loginModal.style.display = "none";
             } else {
-                alert(data.error || "Login failed");
+                alert(data.error);
             }
         } catch (error) {
-            alert("An error occurred. Please try again.");
+            alert("Login failed. Try again later.");
         }
     });
 
-    // Handle logout confirmation popup
-    confirmLogoutBtn?.addEventListener("click", () => {
-        logoutUser();
-        logoutModal.style.display = "none";
-    });
-
-    cancelLogoutBtn?.addEventListener("click", () => {
-        logoutModal.style.display = "none";
-    });
-}
-
-// Show user profile after login
-function showUserProfile(username) {
-    const openLoginBtn = document.getElementById("openLogin");
-    const loggedInUser = document.getElementById("loggedInUser");
-
-    openLoginBtn.classList.add("hidden");
-    loggedInUser.classList.remove("hidden");
-    loggedInUser.innerHTML = `
-        <img src="https://ui-avatars.com/api/?name=${username}&background=random" class="user-avatar" />
-        <span>${username}</span>
-        <div class="dropdown">
-            <button id="logoutBtn">Logout</button>
-        </div>
-    `;
-
-    document.getElementById("logoutBtn")?.addEventListener("click", () => {
-        logoutModal.style.display = "flex";
-    });
-}
-
-// Logout user
-function logoutUser() {
-    localStorage.removeItem("username");
-    localStorage.removeItem("token");
-    window.location.reload();
+    const storedUser = localStorage.getItem("username");
+    if (storedUser) {
+        updateUI(storedUser, "https://ui-avatars.com/api/?name=" + storedUser);
+    }
 }
