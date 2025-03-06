@@ -5,48 +5,16 @@ document.addEventListener("DOMContentLoaded", () => {
     initToggleList();
 });
 
-// ===== Matrix Effect =====
-function initMatrixEffect() {
-    const canvas = document.getElementById("matrixCanvas");
-    if (!canvas) return;
+// ===== Toggle Website List Fix =====
+function initToggleList() {
+    const toggleButton = document.getElementById("toggleList");
+    const websiteList = document.getElementById("websiteList");
+    const toggleArrow = document.getElementById("toggleArrow");
 
-    const ctx = canvas.getContext("2d");
-
-    function resizeCanvas() {
-        const header = document.querySelector("header");
-        canvas.width = header.clientWidth;
-        canvas.height = header.clientHeight;
-    }
-
-    resizeCanvas();
-    window.addEventListener("resize", resizeCanvas);
-
-    const letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ123456789@#$%^&*()";
-    const matrix = letters.split("");
-
-    const fontSize = 16;
-    const columns = Math.floor(canvas.width / fontSize);
-    const drops = Array(columns).fill(0);
-
-    function drawMatrix() {
-        ctx.fillStyle = "rgba(0, 0, 0, 0.1)";
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-        ctx.fillStyle = "limegreen";
-        ctx.font = `${fontSize}px monospace`;
-
-        for (let i = 0; i < drops.length; i++) {
-            const text = matrix[Math.floor(Math.random() * matrix.length)];
-            ctx.fillText(text, i * fontSize, drops[i] * fontSize);
-
-            if (drops[i] * fontSize > canvas.height && Math.random() > 0.975) {
-                drops[i] = 0;
-            }
-            drops[i]++;
-        }
-    }
-
-    setInterval(drawMatrix, 50);
+    toggleButton?.addEventListener("click", () => {
+        websiteList.classList.toggle("hidden");
+        toggleArrow.textContent = websiteList.classList.contains("hidden") ? "▼" : "▲";
+    });
 }
 
 // ===== Authentication System =====
@@ -56,82 +24,87 @@ function initAuthSystem() {
     const closeModalBtn = document.querySelector("#authModal .close");
     const loggedInUser = document.getElementById("loggedInUser");
     const loginForm = document.getElementById("loginForm");
-    const signupForm = document.getElementById("signupForm");
-    const showSignUp = document.getElementById("showSignUp");
-    const showLogin = document.getElementById("showLogin");
+    const logoutModal = document.getElementById("logoutModal");
+    const confirmLogoutBtn = document.getElementById("confirmLogout");
+    const cancelLogoutBtn = document.getElementById("cancelLogout");
+
+    // Check if user is already logged in
+    const storedUser = localStorage.getItem("username");
+    if (storedUser) {
+        showUserProfile(storedUser);
+    }
 
     openLoginBtn?.addEventListener("click", (e) => {
         e.preventDefault();
-        loginModal.style.display = "flex"; // Fix: Ensure modal is visible
+        loginModal.style.display = "flex";
     });
 
     closeModalBtn?.addEventListener("click", () => {
         loginModal.style.display = "none";
     });
 
-    window.onclick = function (event) {
-        if (event.target === loginModal) {
-            loginModal.style.display = "none";
-        }
-    };
-
-    showSignUp?.addEventListener("click", (e) => {
-        e.preventDefault();
-        loginForm.classList.add("hidden");
-        signupForm.classList.remove("hidden");
-    });
-
-    showLogin?.addEventListener("click", (e) => {
-        e.preventDefault();
-        signupForm.classList.add("hidden");
-        loginForm.classList.remove("hidden");
-    });
-}
-
-// ===== Website Request Form Handler =====
-function initWebsiteRequestForm() {
-    const requestForm = document.getElementById("requestForm");
-    if (!requestForm) return;
-
-    requestForm.addEventListener("submit", async (event) => {
+    // Handle login form submission
+    loginForm?.addEventListener("submit", async (event) => {
         event.preventDefault();
 
-        const phone = document.getElementById("requestPhone").value;
-        const type = document.getElementById("websiteType").value;
-        const requirements = document.getElementById("requirements").value;
+        const username = document.getElementById("login-username").value;
+        const password = document.getElementById("login-password").value;
 
         try {
-            const token = localStorage.getItem("token");
-            const response = await fetch("/request", {
+            const response = await fetch("/login", {
                 method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    "Authorization": `Bearer ${token}`
-                },
-                body: JSON.stringify({ phone, type, requirements }),
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ username, password }),
             });
 
             const data = await response.json();
             if (response.ok) {
-                alert("Website request submitted successfully!");
-                requestForm.reset();
+                localStorage.setItem("username", data.username);
+                localStorage.setItem("token", data.token);
+                showUserProfile(data.username);
+                loginModal.style.display = "none";
             } else {
-                alert(data.error || "Request failed");
+                alert(data.error || "Login failed");
             }
         } catch (error) {
             alert("An error occurred. Please try again.");
         }
     });
+
+    // Handle logout confirmation popup
+    confirmLogoutBtn?.addEventListener("click", () => {
+        logoutUser();
+        logoutModal.style.display = "none";
+    });
+
+    cancelLogoutBtn?.addEventListener("click", () => {
+        logoutModal.style.display = "none";
+    });
 }
 
-// ===== Toggle Website List =====
-function initToggleList() {
-    const toggleButton = document.getElementById("toggleList");
-    const websiteList = document.getElementById("websiteList");
-    const toggleArrow = document.getElementById("toggleArrow");
+// Show user profile after login
+function showUserProfile(username) {
+    const openLoginBtn = document.getElementById("openLogin");
+    const loggedInUser = document.getElementById("loggedInUser");
 
-    toggleButton?.addEventListener("click", () => {
-        websiteList.classList.toggle("hidden"); // Fix: Use class toggle instead of display property
-        toggleArrow.textContent = websiteList.classList.contains("hidden") ? "▼" : "▲";
+    openLoginBtn.classList.add("hidden");
+    loggedInUser.classList.remove("hidden");
+    loggedInUser.innerHTML = `
+        <img src="https://ui-avatars.com/api/?name=${username}&background=random" class="user-avatar" />
+        <span>${username}</span>
+        <div class="dropdown">
+            <button id="logoutBtn">Logout</button>
+        </div>
+    `;
+
+    document.getElementById("logoutBtn")?.addEventListener("click", () => {
+        logoutModal.style.display = "flex";
     });
+}
+
+// Logout user
+function logoutUser() {
+    localStorage.removeItem("username");
+    localStorage.removeItem("token");
+    window.location.reload();
 }
