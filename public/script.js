@@ -96,7 +96,7 @@ function initAuthSystem() {
 }
 
 // ===== Toggle Website List =====
-function initToggleList() {
+function toggleList() {
     const toggleButton = document.getElementById("toggleList");
     const websiteList = document.getElementById("websiteList");
     const toggleArrow = document.getElementById("toggleArrow");
