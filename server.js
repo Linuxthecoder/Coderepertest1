@@ -19,16 +19,17 @@ app.use(cors({
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true })); // Allow form data parsing
-app.use(express.static('public'));
 
-// 📡 MongoDB Connection
+// Serve static files (your front-end)
+app.use(express.static('public'));  // If your front-end folder is 'public'
+
 mongoose.set('strictQuery', true);
 mongoose.set('debug', true);
 
-// Replace with your MongoDB connection string directly
-mongoose.connect("mongodb+srv://Codereper:75iM273Z4nOh1r0J@website2.v6oux.mongodb.net/?retryWrites=true&w=majority&appName=Website2")
-    .then(() => console.log('✅ MongoDB connected'))
-    .catch(err => console.error('❌ MongoDB connection error:', err));
+// 📡 MongoDB Connection
+mongoose.connect(process.env.MONGO_URI || "your-mongo-db-connection-string-here")
+  .then(() => console.log('✅ MongoDB connected'))
+  .catch(err => console.error('❌ MongoDB connection error:', err));
 
 // 🏛️ Schemas & Models
 const UserSchema = new mongoose.Schema({
@@ -62,16 +63,10 @@ const verifyToken = (req, res, next) => {
 // ✅ SIGNUP Route
 app.post('/signup', async (req, res) => {
     try {
-        console.log("📩 Signup request received:", req.body);
         const { username, password, email, phone, profilePic } = req.body;
 
         if (!username || !password || !email) {
             return res.status(400).json({ error: "Username, password, and email are required." });
-        }
-
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        if (!emailRegex.test(email)) {
-            return res.status(400).json({ error: "Invalid email format." });
         }
 
         const existingUser = await User.findOne({ $or: [{ username }, { email }] });
@@ -83,7 +78,6 @@ app.post('/signup', async (req, res) => {
         const newUser = new User({ username, password: hashedPassword, email, phone, profilePic });
 
         await newUser.save();
-        console.log("✅ New user registered:", newUser);
 
         res.status(201).json({ message: '🎉 User registered successfully!' });
     } catch (error) {
@@ -95,7 +89,6 @@ app.post('/signup', async (req, res) => {
 // ✅ LOGIN Route
 app.post('/login', async (req, res) => {
     try {
-        console.log("🔑 Login request received:", req.body);
         const { username, password } = req.body;
 
         const user = await User.findOne({ username });
@@ -104,23 +97,12 @@ app.post('/login', async (req, res) => {
         const isMatch = await bcrypt.compare(password, user.password);
         if (!isMatch) return res.status(401).json({ error: 'Invalid username or password' });
 
-        const token = jwt.sign({ userId: user._id, username: user.username, profilePic: user.profilePic }, JWT_SECRET, { expiresIn: '2h' });
+        const token = jwt.sign({ userId: user._id, username: user.username }, JWT_SECRET, { expiresIn: '2h' });
 
-        res.json({ token, username: user.username, profilePic: user.profilePic, message: '✅ Login successful!' });
+        res.json({ token, username: user.username, message: '✅ Login successful!' });
     } catch (error) {
         console.error("❌ Login error:", error);
         res.status(500).json({ error: 'Server error. Try again later.' });
-    }
-});
-
-// ✅ GET Users (For Testing)
-app.get('/users', async (req, res) => {
-    try {
-        const users = await User.find({}, { password: 0 });
-        res.json(users);
-    } catch (error) {
-        console.error("❌ Fetch users error:", error);
-        res.status(500).json({ error: "Error retrieving users." });
     }
 });
 
