@@ -27,7 +27,7 @@ mongoose.set('strictQuery', true);
 mongoose.set('debug', true);
 
 // 📡 MongoDB Connection
-mongoose.connect(process.env.MONGO_URI || "your-mongo-db-connection-string-here")
+mongoose.connect(process.env.MONGO_URI || "mongodb+srv://Codereper:bfJIZDDuL2jxxRxZ@website2.v6oux.mongodb.net/?retryWrites=true&w=majority&appName=Website2")
   .then(() => console.log('✅ MongoDB connected'))
   .catch(err => console.error('❌ MongoDB connection error:', err));
 
