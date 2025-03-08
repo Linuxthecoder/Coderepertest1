@@ -49,80 +49,62 @@ function initMatrixEffect() {
     setInterval(drawMatrix, 50);
 }
 
-// ===== Authentication System =====
-function initAuthSystem() {
-    const loginModal = document.getElementById("authModal");
-    const openLoginBtn = document.getElementById("openLogin");
-    const closeModalBtn = document.querySelector("#authModal .close");
-    const loggedInUser = document.getElementById("loggedInUser");
-    const loginForm = document.getElementById("loginForm");
-    const signupForm = document.getElementById("signupForm");
-    const showSignUp = document.getElementById("showSignUp");
-    const showLogin = document.getElementById("showLogin");
+document.getElementById("newUserBtn").addEventListener("click", () => {
+    document.getElementById("welcomeMessage").classList.add("hidden");
+    document.getElementById("signupForm").classList.remove("hidden");
+});
 
-    console.log("Auth System Initialized");
+document.getElementById("existingUserBtn").addEventListener("click", () => {
+    document.getElementById("welcomeMessage").classList.add("hidden");
+    document.getElementById("loginForm").classList.remove("hidden");
+});
 
-    if (!openLoginBtn || !loginModal || !loggedInUser) {
-        console.error("🚨 Missing login elements in HTML!");
+// Signup Form Submission
+document.getElementById("signup").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const name = document.getElementById("name").value;
+    const phone = document.getElementById("phone").value;
+    const username = document.getElementById("username").value;
+    const password = document.getElementById("password").value;
+    const confirmPassword = document.getElementById("confirmPassword").value;
+
+    if (password !== confirmPassword) {
+        document.getElementById("signupMessage").textContent = "Passwords do not match";
         return;
     }
 
-    openLoginBtn.addEventListener("click", (e) => {
-        e.preventDefault();
-        console.log("Login button clicked!");
-        loginModal.style.display = "block"; // Ensure modal shows up
+    const response = await fetch("/signup", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, phone, username, password }),
     });
 
-    closeModalBtn?.addEventListener("click", () => {
-        loginModal.style.display = "none";
+    const data = await response.json();
+    document.getElementById("signupMessage").textContent = data.message;
+
+    if (data.message === "User created successfully") {
+});
+
+// Login Form Submission
+document.getElementById("login").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const username = document.getElementById("loginUsername").value;
+    const password = document.getElementById("loginPassword").value;
+
+    const response = await fetch("/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username, password }),
     });
 
-    window.onclick = function (event) {
-        if (event.target === loginModal) {
-            loginModal.style.display = "none";
-        }
-    };
+    const data = await response.json();
+    if (data.message === "Login successful") {
+        localStorage.setItem("token", data.token); // Save token for authentication
+    } else {
+        document.getElementById("loginMessage").textContent = data.message;
+    }
+});
 
-    showSignUp?.addEventListener("click", (e) => {
-        e.preventDefault();
-        loginForm.classList.add("hidden");
-        signupForm.classList.remove("hidden");
-    });
-
-    showLogin?.addEventListener("click", (e) => {
-        e.preventDefault();
-        signupForm.classList.add("hidden");
-        loginForm.classList.remove("hidden");
-    });
-
-    // Login Form Submission
-    loginForm?.addEventListener("submit", async (event) => {
-        event.preventDefault();
-        console.log("Login form submitted!");
-
-        const username = document.getElementById("login-username").value;
-        const password = document.getElementById("login-password").value;
-
-        try {
-            const response = await fetch("/login", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ username, password }),
-            });
-
-            const data = await response.json();
-            if (response.ok) {
-                localStorage.setItem("token", data.token);
-                localStorage.setItem("username", data.username);
-                window.location.reload();
-            } else {
-                document.getElementById("error-message").textContent = data.error;
-            }
-        } catch (error) {
-            document.getElementById("error-message").textContent = "An error occurred. Please try again.";
-        }
-    });
-}
 
 // 🚀 Website Request Form
 function initWebsiteRequestForm() {
