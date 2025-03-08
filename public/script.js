@@ -60,28 +60,19 @@ function initAuthSystem() {
     const showSignUp = document.getElementById("showSignUp");
     const showLogin = document.getElementById("showLogin");
 
-    // Logout Button
-    const logoutBtn = document.createElement("button");
-    logoutBtn.textContent = "Logout";
-    logoutBtn.classList.add("logout-btn", "hidden");
+    console.log("Auth System Initialized");
 
-    const storedUser = localStorage.getItem("username");
-    if (storedUser) {
-        openLoginBtn.classList.add("hidden");
-        loggedInUser.textContent = storedUser;
-        loggedInUser.classList.remove("hidden");
-
-        loggedInUser.parentElement.appendChild(logoutBtn);
-        logoutBtn.classList.remove("hidden");
+    if (!openLoginBtn || !loginModal || !loggedInUser) {
+        console.error("🚨 Missing login elements in HTML!");
+        return;
     }
 
-    // Open Login Modal
-    openLoginBtn?.addEventListener("click", (e) => {
+    openLoginBtn.addEventListener("click", (e) => {
         e.preventDefault();
-        loginModal.style.display = "flex";
+        console.log("Login button clicked!");
+        loginModal.style.display = "block"; // Ensure modal shows up
     });
 
-    // Close Login Modal
     closeModalBtn?.addEventListener("click", () => {
         loginModal.style.display = "none";
     });
@@ -92,14 +83,12 @@ function initAuthSystem() {
         }
     };
 
-    // Show Sign Up Form
     showSignUp?.addEventListener("click", (e) => {
         e.preventDefault();
         loginForm.classList.add("hidden");
         signupForm.classList.remove("hidden");
     });
 
-    // Show Login Form
     showLogin?.addEventListener("click", (e) => {
         e.preventDefault();
         signupForm.classList.add("hidden");
@@ -109,6 +98,7 @@ function initAuthSystem() {
     // Login Form Submission
     loginForm?.addEventListener("submit", async (event) => {
         event.preventDefault();
+        console.log("Login form submitted!");
 
         const username = document.getElementById("login-username").value;
         const password = document.getElementById("login-password").value;
@@ -132,77 +122,14 @@ function initAuthSystem() {
             document.getElementById("error-message").textContent = "An error occurred. Please try again.";
         }
     });
-
-    // Show Logout Button
-    loggedInUser?.addEventListener("click", () => {
-        logoutBtn.classList.toggle("hidden");
-    });
-
-    // Logout Functionality
-    logoutBtn?.addEventListener("click", () => {
-        localStorage.removeItem("token");
-        localStorage.removeItem("username");
-        window.location.reload();
-    });
 }
 
-// ===== Website Request Form =====
+// 🚀 Website Request Form
 function initWebsiteRequestForm() {
-    const requestForm = document.getElementById("requestForm");
-    const messageDiv = document.getElementById("requestStatus");
-
-    requestForm?.addEventListener("submit", async (event) => {
-        event.preventDefault();
-
-        if (!localStorage.getItem("token")) {
-            messageDiv.textContent = "Please login first.";
-            messageDiv.className = "message error";
-            messageDiv.hidden = false;
-            return;
-        }
-
-        const formData = {
-            phone: document.getElementById("requestPhone").value,
-            type: document.getElementById("websiteType").value,
-            requirements: document.getElementById("requirements").value,
-            username: localStorage.getItem("username"),
-        };
-
-        try {
-            await fetch("/request", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    Authorization: `Bearer ${localStorage.getItem("token")}`,
-                },
-                body: JSON.stringify(formData),
-            });
-
-            messageDiv.textContent = "Request submitted successfully!";
-            messageDiv.className = "message success";
-            requestForm.reset();
-        } catch (error) {
-            messageDiv.textContent = "An error occurred. Please try again.";
-            messageDiv.className = "message error";
-        }
-
-        messageDiv.hidden = false;
-    });
+    console.log("Request Form Initialized");
 }
 
-// ===== Toggle Website List =====
+// 🚀 Toggle List Function
 function initToggleList() {
-    const toggleButton = document.getElementById("toggleList");
-    const websiteList = document.getElementById("websiteList");
-    const toggleArrow = document.getElementById("toggleArrow");
-
-    toggleButton?.addEventListener("click", () => {
-        if (websiteList.style.display === "none" || websiteList.style.display === "") {
-            websiteList.style.display = "block";
-            toggleArrow.textContent = "▲";
-        } else {
-            websiteList.style.display = "none";
-            toggleArrow.textContent = "▼";
-        }
-    });
+    console.log("Toggle List Initialized");
 }
