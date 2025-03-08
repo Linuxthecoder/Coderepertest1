@@ -3,11 +3,13 @@ const mongoose = require('mongoose');
 const cors = require('cors');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-require('dotenv').config();
 
 const app = express();
 const PORT = process.env.PORT || 5000;
 const JWT_SECRET = process.env.JWT_SECRET || "your_default_jwt_secret";
+
+// Replace this with your actual MongoDB URI
+const MONGO_URI = "mongodb+srv://Codereper:75iM273Z4nOh1r0J@website2.v6oux.mongodb.net/WebsiteDB?retryWrites=true&w=majority";
 
 // Enhanced CORS configuration
 app.use(cors({
@@ -20,9 +22,9 @@ app.use(express.json());
 app.use(express.static('public'));
 
 // ===== MongoDB Connection =====
-mongoose.connect(process.env.MONGO_URI || "mongodb+srv://Codereper:75iM273Z4nOh1r0J@website2.v6oux.mongodb.net/?retryWrites=true&w=majority&appName=Website2", {
-    useNewUrlParser: true,
-    useUnifiedTopology: true
+mongoose.connect(MONGO_URI, {
+    useNewUrlParser: true,  // Optional now, but added for legacy code support
+    useUnifiedTopology: true, // Optional now, but added for legacy code support
 }).then(() => console.log('✅ MongoDB connected'))
   .catch(err => console.error('❌ MongoDB connection error:', err));
 
