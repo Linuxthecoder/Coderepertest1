@@ -6,14 +6,14 @@ const jwt = require('jsonwebtoken');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
-const JWT_SECRET = process.env.JWT_SECRET || "your_default_jwt_secret";
+const JWT_SECRET = process.env.JWT_SECRET || "b442349f670dcf6981d837ea0bf4ee0cc7c5cc7b25ada5c2d1f71f7f6ea02d901dabc7be7007c4d711804055838095bc13d1935b659d77bdab508770a50c2dd1";
 
 // Replace this with your actual MongoDB URI
-const MONGO_URI = "mongodb+srv://Codereper:75iM273Z4nOh1r0J@website2.v6oux.mongodb.net/WebsiteDB?retryWrites=true&w=majority";
+const MONGO_URI = "mongodb+srv://Codereper:bfJIZDDuL2jxxRxZ@website2.v6oux.mongodb.net/?retryWrites=true&w=majority&appName=Website2";
 
 // Enhanced CORS configuration
 app.use(cors({
-    origin: ["http://localhost:3000", "https://your-frontend-domain.com"],
+    origin: ["http://localhost:3000", "https://www-code-reaper-com.onrender.com"],
     methods: ["GET", "POST", "PUT", "DELETE"],
     allowedHeaders: ["Content-Type", "Authorization"]
 }));
