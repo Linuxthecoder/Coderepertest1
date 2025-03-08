@@ -1,169 +1,132 @@
-const express = require('express');
-const mongoose = require('mongoose');
-const cors = require('cors');
-const bcrypt = require('bcryptjs');
-const jwt = require('jsonwebtoken');
+const express = require("express");
+const mongoose = require("mongoose");
+const bcrypt = require("bcryptjs");
+const jwt = require("jsonwebtoken");
+const bodyParser = require("body-parser");
+const cors = require("cors");
 
+// Initialize the app and middleware
 const app = express();
-const PORT = process.env.PORT || 5000;
-const JWT_SECRET = process.env.JWT_SECRET || "b442349f670dcf6981d837ea0bf4ee0cc7c5cc7b25ada5c2d1f71f7f6ea02d901dabc7be7007c4d711804055838095bc13d1935b659d77bdab508770a50c2dd1";
+app.use(cors());
+app.use(bodyParser.json());
 
-// Replace this with your actual MongoDB URI
-const MONGO_URI = "mongodb+srv://Codereper:bfJIZDDuL2jxxRxZ@website2.v6oux.mongodb.net/?retryWrites=true&w=majority&appName=Website2";
+// Direct configuration values
+const JWT_SECRET = "b442349f670dcf6981d837ea0bf4ee0cc7c5cc7b25ada5c2d1f71f7f6ea02d901dabc7be7007c4d711804055838095bc13d1935b659d77bdab508770a50c2dd1"; // Replace with a stronger secret
 
-// Enhanced CORS configuration
-app.use(cors({
-    origin: ["http://localhost:3000", "https://www-code-reaper-com.onrender.com"],
-    methods: ["GET", "POST", "PUT", "DELETE"],
-    allowedHeaders: ["Content-Type", "Authorization"]
-}));
+// MongoDB Atlas connection string
+const MONGO_URI = "mongodb+srv://Codereper:bfJIZDDuL2jxxRxZ@website2.v6oux.mongodb.net/?retryWrites=true&w=majority&appName=Website2"; // Replace with your MongoDB Atlas URI
 
-app.use(express.json());
-app.use(express.static('public'));
+// Database connection
+mongoose.connect(MONGO_URI, { useNewUrlParser: true, useUnifiedTopology: true })
+    .then(() => console.log("MongoDB connected"))
+    .catch(err => console.log("MongoDB connection error:", err));
 
-// ===== MongoDB Connection =====
-mongoose.connect(MONGO_URI)
-  .then(() => console.log('✅ MongoDB connected'))
-  .catch(err => console.error('❌ MongoDB connection error:', err));
-
-// ===== Schemas & Models =====
+// User model
 const UserSchema = new mongoose.Schema({
-    username: { type: String, unique: true, required: true },
+    username: { type: String, required: true, unique: true },
     password: { type: String, required: true },
-    email: { type: String, unique: true, required: true },
-    phone: String,
-    createdAt: { type: Date, default: Date.now }
+    email: { type: String },
+    phone: { type: String },
 });
 
+const User = mongoose.model("User", UserSchema);
+
+// Website Request model
 const WebsiteRequestSchema = new mongoose.Schema({
-    username: String,
-    phone: String,
-    type: String,
-    requirements: String,
-    timestamp: { type: Date, default: Date.now },
-    status: { type: String, default: 'pending' }
+    username: { type: String, required: true },
+    phone: { type: String, required: true },
+    type: { type: String, required: true },
+    requirements: { type: String, required: true },
 });
 
-const ContactSchema = new mongoose.Schema({
-    name: String,
-    email: String,
-    message: String,
-    timestamp: { type: Date, default: Date.now }
+const WebsiteRequest = mongoose.model("WebsiteRequest", WebsiteRequestSchema);
+
+// API Routes
+
+// Signup route
+app.post("/signup", async (req, res) => {
+    const { username, password, email, phone } = req.body;
+
+    // Check if user already exists
+    const existingUser = await User.findOne({ username });
+    if (existingUser) {
+        return res.status(400).json({ error: "Username already exists" });
+    }
+
+    // Hash the password
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    // Create new user
+    const newUser = new User({
+        username,
+        password: hashedPassword,
+        email,
+        phone,
+    });
+
+    try {
+        await newUser.save();
+        res.status(201).json({ message: "User created successfully" });
+    } catch (error) {
+        console.error("Signup error:", error);
+        res.status(500).json({ error: "Signup failed" });
+    }
 });
 
-const User = mongoose.model('User', UserSchema);
-const WebsiteRequest = mongoose.model('WebsiteRequest', WebsiteRequestSchema);
-const Contact = mongoose.model('Contact', ContactSchema);
+// Login route
+app.post("/login", async (req, res) => {
+    const { username, password } = req.body;
 
-// ===== Middleware to Verify JWT Token =====
-const verifyToken = (req, res, next) => {
-    const token = req.headers.authorization?.split(" ")[1]; // Extract token
+    // Find the user by username
+    const user = await User.findOne({ username });
+    if (!user) {
+        return res.status(400).json({ error: "Invalid credentials" });
+    }
+
+    // Compare the password with the stored hashed password
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) {
+        return res.status(400).json({ error: "Invalid credentials" });
+    }
+
+    // Generate JWT token
+    const token = jwt.sign({ userId: user._id, username: user.username }, JWT_SECRET, { expiresIn: "1h" });
+
+    res.json({ message: "Login successful", token });
+});
+
+// Website Request route
+app.post("/request", async (req, res) => {
+    const { phone, type, requirements, username } = req.body;
+    const token = req.headers.authorization?.split(" ")[1];
 
     if (!token) {
-        return res.status(401).json({ error: "Access denied. No token provided." });
+        return res.status(401).json({ error: "No token provided" });
     }
 
     try {
+        // Verify token
         const decoded = jwt.verify(token, JWT_SECRET);
-        req.user = decoded; // Attach user data to request
-        next();
-    } catch (err) {
-        return res.status(403).json({ error: "Invalid or expired token." });
-    }
-};
-
-// ===== Authentication Routes =====
-app.post('/signup', async (req, res) => {
-    try {
-        const { username, password, email, phone } = req.body;
-
-        // Check if username or email already exists
-        if (await User.findOne({ username })) {
-            return res.status(400).json({ error: "Username already taken." });
-        }
-        if (await User.findOne({ email })) {
-            return res.status(400).json({ error: "Email already in use." });
+        if (decoded.username !== username) {
+            return res.status(403).json({ error: "Invalid token user" });
         }
 
-        const hashedPassword = await bcrypt.hash(password, 10);
-
-        const newUser = new User({
-            username,
-            password: hashedPassword,
-            email,
-            phone
-        });
-
-        await newUser.save();
-        console.log("New user saved:", newUser);  // Added logging to check if the user is saved
-        res.status(201).json({ message: '🎉 User registered successfully!' });
-    } catch (error) {
-        console.error("❌ Signup error:", error);
-        res.status(500).json({ error: "Registration failed. Try again later." });
-    }
-});
-
-app.post('/login', async (req, res) => {
-    try {
-        const { username, password } = req.body;
-        const user = await User.findOne({ username });
-
-        if (!user) return res.status(401).json({ error: 'Invalid username or password' });
-
-        const isMatch = await bcrypt.compare(password, user.password);
-        if (!isMatch) return res.status(401).json({ error: 'Invalid username or password' });
-
-        const token = jwt.sign(
-            { userId: user._id, username: user.username },
-            JWT_SECRET,
-            { expiresIn: '2h' }
-        );
-
-        res.json({
-            token,
-            username: user.username,
-            message: '✅ Login successful!'
-        });
-    } catch (error) {
-        console.error("❌ Login error:", error);
-        res.status(500).json({ error: 'Server error. Try again later.' });
-    }
-});
-
-// ===== Website Request Endpoint (Protected) =====
-app.post('/request', verifyToken, async (req, res) => {
-    try {
+        // Create a new website request
         const newRequest = new WebsiteRequest({
-            username: req.user.username, // Get username from token
-            phone: req.body.phone,
-            type: req.body.type,
-            requirements: req.body.requirements
+            username,
+            phone,
+            type,
+            requirements,
         });
 
         await newRequest.save();
-        console.log("New request saved:", newRequest);  // Added logging to check if the request is saved
-        res.status(201).json({ message: "🎯 Website request submitted successfully!" });
+        res.status(201).json({ message: "Request submitted successfully" });
     } catch (error) {
-        console.error("❌ Request error:", error);
-        res.status(500).json({ error: "Error processing request. Please try again." });
+        console.error("Request error:", error);
+        res.status(500).json({ error: "An error occurred, please try again" });
     }
 });
 
-// ===== Contact Form Endpoint =====
-app.post('/contact', async (req, res) => {
-    try {
-        const { name, email, message } = req.body;
-        const newContact = new Contact({ name, email, message });
-        await newContact.save();
-        console.log("New contact message saved:", newContact);  // Added logging to check if the contact message is saved
-        res.status(201).json({ message: '📩 Message received successfully!' });
-    } catch (error) {
-        console.error("❌ Contact error:", error);
-        res.status(500).json({ error: 'Error submitting message. Try again later.' });
-    }
-});
-
-// ===== Server Start =====
-app.listen(PORT, () => {
-    console.log(`🚀 Server running at http://localhost:${PORT}`);
-});
+// Start server
+const PORT = process.env.PORT || 5000;
+app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
