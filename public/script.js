@@ -110,8 +110,8 @@ function initAuthSystem() {
     loginForm?.addEventListener("submit", async (event) => {
         event.preventDefault();
 
-        const username = document.getElementById("login-username").value;
-        const password = document.getElementById("login-password").value;
+        const username = document.getElementById("loginUsername").value;
+        const password = document.getElementById("loginPassword").value;
 
         try {
             const response = await fetch("/login", {
@@ -121,35 +121,71 @@ function initAuthSystem() {
             });
 
             const data = await response.json();
+            console.log("Login Response:", data);
+
             if (response.ok) {
                 localStorage.setItem("token", data.token);
-                localStorage.setItem("username", data.username);
-                window.location.reload();
+                localStorage.setItem("username", username);
+                loginModal.style.display = "none";
+                openLoginBtn.classList.add("hidden");
+                loggedInUser.textContent = username;
+                loggedInUser.classList.remove("hidden");
+
+                logoutBtn.classList.remove("hidden");
             } else {
-                document.getElementById("error-message").textContent = data.error;
+                alert(data.error || "Login failed");
             }
         } catch (error) {
-            document.getElementById("error-message").textContent = "An error occurred. Please try again.";
+            console.error("Login Error:", error);
         }
     });
 
-    // Show Logout Button
-    loggedInUser?.addEventListener("click", () => {
-        logoutBtn.classList.toggle("hidden");
+    // Signup Form Submission
+    signupForm?.addEventListener("submit", async (event) => {
+        event.preventDefault();
+
+        const username = document.getElementById("signupUsername").value;
+        const password = document.getElementById("signupPassword").value;
+        const email = document.getElementById("signupEmail").value;
+        const phone = document.getElementById("signupPhone").value;
+
+        try {
+            const response = await fetch("/signup", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ username, password, email, phone }),
+            });
+
+            const data = await response.json();
+            console.log("Signup Response:", data);
+
+            if (response.ok) {
+                alert(data.message);
+                signupForm.reset();
+                loginForm.classList.remove("hidden");
+                signupForm.classList.add("hidden");
+            } else {
+                alert(data.error || "Signup failed");
+            }
+        } catch (error) {
+            console.error("Signup Error:", error);
+        }
     });
 
     // Logout Functionality
     logoutBtn?.addEventListener("click", () => {
         localStorage.removeItem("token");
         localStorage.removeItem("username");
-        window.location.reload();
+        loggedInUser.classList.add("hidden");
+        openLoginBtn.classList.remove("hidden");
+        logoutBtn.classList.add("hidden");
     });
 }
 
 // ===== Website Request Form =====
 function initWebsiteRequestForm() {
-    const requestForm = document.getElementById("requestForm");
-    const messageDiv = document.getElementById("requestStatus");
+    const requestForm = document.getElementById("websiteRequestForm");
+    const messageDiv = document.getElementById("formMessage");
 
     requestForm?.addEventListener("submit", async (event) => {
         event.preventDefault();
@@ -169,7 +205,7 @@ function initWebsiteRequestForm() {
         };
 
         try {
-            await fetch("/request", {
+            const response = await fetch("/request", {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
@@ -178,31 +214,24 @@ function initWebsiteRequestForm() {
                 body: JSON.stringify(formData),
             });
 
-            messageDiv.textContent = "Request submitted successfully!";
-            messageDiv.className = "message success";
-            requestForm.reset();
+            const responseData = await response.json();
+            console.log("Request Response:", responseData);
+
+            if (response.ok) {
+                messageDiv.textContent = "Request submitted successfully!";
+                messageDiv.className = "message success";
+                requestForm.reset();
+            } else {
+                messageDiv.textContent = "An error occurred. Please try again.";
+                messageDiv.className = "message error";
+            }
+
+            messageDiv.hidden = false;
         } catch (error) {
+            console.error("Request Error:", error);
             messageDiv.textContent = "An error occurred. Please try again.";
             messageDiv.className = "message error";
-        }
-
-        messageDiv.hidden = false;
-    });
-}
-
-// ===== Toggle Website List =====
-function initToggleList() {
-    const toggleButton = document.getElementById("toggleList");
-    const websiteList = document.getElementById("websiteList");
-    const toggleArrow = document.getElementById("toggleArrow");
-
-    toggleButton?.addEventListener("click", () => {
-        if (websiteList.style.display === "none" || websiteList.style.display === "") {
-            websiteList.style.display = "block";
-            toggleArrow.textContent = "▲";
-        } else {
-            websiteList.style.display = "none";
-            toggleArrow.textContent = "▼";
+            messageDiv.hidden = false;
         }
     });
 }
