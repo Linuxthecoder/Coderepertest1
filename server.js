@@ -42,6 +42,7 @@ const WebsiteRequestSchema = new mongoose.Schema({
 const WebsiteRequest = mongoose.model("WebsiteRequest", WebsiteRequestSchema);
 
 // API Routes
+app.use(express.static('public'));
 
 // Signup route
 app.post("/signup", async (req, res) => {
