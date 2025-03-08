@@ -1,166 +1,208 @@
-const express = require('express');
-const mongoose = require('mongoose');
-const cors = require('cors');
-const bcrypt = require('bcryptjs');
-const jwt = require('jsonwebtoken');
-require('dotenv').config();
-
-const app = express();
-const PORT = process.env.PORT || 5000;
-const JWT_SECRET = process.env.JWT_SECRET || "your_default_jwt_secret";
-
-// Enhanced CORS configuration
-app.use(cors({
-    origin: ["http://localhost:3000", "https://your-frontend-domain.com"],
-    methods: ["GET", "POST", "PUT", "DELETE"],
-    allowedHeaders: ["Content-Type", "Authorization"]
-}));
-
-app.use(express.json());
-app.use(express.static('public'));
-
-// ===== MongoDB Connection =====
-mongoose.connect(process.env.MONGO_URI || "mongodb+srv://Codereper:75iM273Z4nOh1r0J@website2.v6oux.mongodb.net/?retryWrites=true&w=majority&appName=Website2", {
-    useNewUrlParser: true,
-    useUnifiedTopology: true
-}).then(() => console.log('✅ MongoDB connected'))
-  .catch(err => console.error('❌ MongoDB connection error:', err));
-
-// ===== Schemas & Models =====
-const UserSchema = new mongoose.Schema({
-    username: { type: String, unique: true, required: true },
-    password: { type: String, required: true },
-    email: { type: String, unique: true, required: true },
-    phone: String,
-    createdAt: { type: Date, default: Date.now }
+document.addEventListener("DOMContentLoaded", () => {
+    initMatrixEffect();
+    initAuthSystem();
+    initWebsiteRequestForm();
+    initToggleList();
 });
 
-const WebsiteRequestSchema = new mongoose.Schema({
-    username: String,
-    phone: String,
-    type: String,
-    requirements: String,
-    timestamp: { type: Date, default: Date.now },
-    status: { type: String, default: 'pending' }
-});
+// ===== Matrix Effect =====
+function initMatrixEffect() {
+    const canvas = document.getElementById("matrixCanvas");
+    if (!canvas) return;
 
-const ContactSchema = new mongoose.Schema({
-    name: String,
-    email: String,
-    message: String,
-    timestamp: { type: Date, default: Date.now }
-});
+    const ctx = canvas.getContext("2d");
 
-const User = mongoose.model('User', UserSchema);
-const WebsiteRequest = mongoose.model('WebsiteRequest', WebsiteRequestSchema);
-const Contact = mongoose.model('Contact', ContactSchema);
-
-// ===== Middleware to Verify JWT Token =====
-const verifyToken = (req, res, next) => {
-    const token = req.headers.authorization?.split(" ")[1]; // Extract token
-
-    if (!token) {
-        return res.status(401).json({ error: "Access denied. No token provided." });
+    function resizeCanvas() {
+        const header = document.querySelector("header");
+        canvas.width = header.clientWidth;
+        canvas.height = header.clientHeight;
     }
 
-    try {
-        const decoded = jwt.verify(token, JWT_SECRET);
-        req.user = decoded; // Attach user data to request
-        next();
-    } catch (err) {
-        return res.status(403).json({ error: "Invalid or expired token." });
-    }
-};
+    resizeCanvas();
+    window.addEventListener("resize", resizeCanvas);
 
-// ===== Authentication Routes =====
-app.post('/signup', async (req, res) => {
-    try {
-        const { username, password, email, phone } = req.body;
+    const letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ123456789@#$%^&*()";
+    const matrix = letters.split("");
 
-        // Check if username or email already exists
-        if (await User.findOne({ username })) {
-            return res.status(400).json({ error: "Username already taken." });
+    const fontSize = 16;
+    const columns = Math.floor(canvas.width / fontSize);
+    const drops = Array(columns).fill(0);
+
+    function drawMatrix() {
+        ctx.fillStyle = "rgba(0, 0, 0, 0.1)";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        ctx.fillStyle = "limegreen";
+        ctx.font = `${fontSize}px monospace`;
+
+        for (let i = 0; i < drops.length; i++) {
+            const text = matrix[Math.floor(Math.random() * matrix.length)];
+            ctx.fillText(text, i * fontSize, drops[i] * fontSize);
+
+            if (drops[i] * fontSize > canvas.height && Math.random() > 0.975) {
+                drops[i] = 0;
+            }
+            drops[i]++;
         }
-        if (await User.findOne({ email })) {
-            return res.status(400).json({ error: "Email already in use." });
+    }
+
+    setInterval(drawMatrix, 50);
+}
+
+// ===== Authentication System =====
+function initAuthSystem() {
+    const loginModal = document.getElementById("authModal");
+    const openLoginBtn = document.getElementById("openLogin");
+    const closeModalBtn = document.querySelector("#authModal .close");
+    const loggedInUser = document.getElementById("loggedInUser");
+    const loginForm = document.getElementById("loginForm");
+    const signupForm = document.getElementById("signupForm");
+    const showSignUp = document.getElementById("showSignUp");
+    const showLogin = document.getElementById("showLogin");
+
+    // Logout Button
+    const logoutBtn = document.createElement("button");
+    logoutBtn.textContent = "Logout";
+    logoutBtn.classList.add("logout-btn", "hidden");
+
+    const storedUser = localStorage.getItem("username");
+    if (storedUser) {
+        openLoginBtn.classList.add("hidden");
+        loggedInUser.textContent = storedUser;
+        loggedInUser.classList.remove("hidden");
+
+        loggedInUser.parentElement.appendChild(logoutBtn);
+        logoutBtn.classList.remove("hidden");
+    }
+
+    // Open Login Modal
+    openLoginBtn?.addEventListener("click", (e) => {
+        e.preventDefault();
+        loginModal.style.display = "flex";
+    });
+
+    // Close Login Modal
+    closeModalBtn?.addEventListener("click", () => {
+        loginModal.style.display = "none";
+    });
+
+    window.onclick = function (event) {
+        if (event.target === loginModal) {
+            loginModal.style.display = "none";
+        }
+    };
+
+    // Show Sign Up Form
+    showSignUp?.addEventListener("click", (e) => {
+        e.preventDefault();
+        loginForm.classList.add("hidden");
+        signupForm.classList.remove("hidden");
+    });
+
+    // Show Login Form
+    showLogin?.addEventListener("click", (e) => {
+        e.preventDefault();
+        signupForm.classList.add("hidden");
+        loginForm.classList.remove("hidden");
+    });
+
+    // Login Form Submission
+    loginForm?.addEventListener("submit", async (event) => {
+        event.preventDefault();
+
+        const username = document.getElementById("login-username").value;
+        const password = document.getElementById("login-password").value;
+
+        try {
+            const response = await fetch("/login", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ username, password }),
+            });
+
+            const data = await response.json();
+            if (response.ok) {
+                localStorage.setItem("token", data.token);
+                localStorage.setItem("username", data.username);
+                window.location.reload();
+            } else {
+                document.getElementById("error-message").textContent = data.error;
+            }
+        } catch (error) {
+            document.getElementById("error-message").textContent = "An error occurred. Please try again.";
+        }
+    });
+
+    // Show Logout Button
+    loggedInUser?.addEventListener("click", () => {
+        logoutBtn.classList.toggle("hidden");
+    });
+
+    // Logout Functionality
+    logoutBtn?.addEventListener("click", () => {
+        localStorage.removeItem("token");
+        localStorage.removeItem("username");
+        window.location.reload();
+    });
+}
+
+// ===== Website Request Form =====
+function initWebsiteRequestForm() {
+    const requestForm = document.getElementById("requestForm");
+    const messageDiv = document.getElementById("requestStatus");
+
+    requestForm?.addEventListener("submit", async (event) => {
+        event.preventDefault();
+
+        if (!localStorage.getItem("token")) {
+            messageDiv.textContent = "Please login first.";
+            messageDiv.className = "message error";
+            messageDiv.hidden = false;
+            return;
         }
 
-        const hashedPassword = await bcrypt.hash(password, 10);
+        const formData = {
+            phone: document.getElementById("requestPhone").value,
+            type: document.getElementById("websiteType").value,
+            requirements: document.getElementById("requirements").value,
+            username: localStorage.getItem("username"),
+        };
 
-        const newUser = new User({
-            username,
-            password: hashedPassword,
-            email,
-            phone
-        });
+        try {
+            await fetch("/request", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${localStorage.getItem("token")}`,
+                },
+                body: JSON.stringify(formData),
+            });
 
-        await newUser.save();
-        res.status(201).json({ message: '🎉 User registered successfully!' });
-    } catch (error) {
-        console.error("❌ Signup error:", error);
-        res.status(500).json({ error: "Registration failed. Try again later." });
-    }
-});
+            messageDiv.textContent = "Request submitted successfully!";
+            messageDiv.className = "message success";
+            requestForm.reset();
+        } catch (error) {
+            messageDiv.textContent = "An error occurred. Please try again.";
+            messageDiv.className = "message error";
+        }
 
-app.post('/login', async (req, res) => {
-    try {
-        const { username, password } = req.body;
-        const user = await User.findOne({ username });
+        messageDiv.hidden = false;
+    });
+}
 
-        if (!user) return res.status(401).json({ error: 'Invalid username or password' });
+// ===== Toggle Website List =====
+function initToggleList() {
+    const toggleButton = document.getElementById("toggleList");
+    const websiteList = document.getElementById("websiteList");
+    const toggleArrow = document.getElementById("toggleArrow");
 
-        const isMatch = await bcrypt.compare(password, user.password);
-        if (!isMatch) return res.status(401).json({ error: 'Invalid username or password' });
-
-        const token = jwt.sign(
-            { userId: user._id, username: user.username },
-            JWT_SECRET,
-            { expiresIn: '2h' }
-        );
-
-        res.json({
-            token,
-            username: user.username,
-            message: '✅ Login successful!'
-        });
-    } catch (error) {
-        console.error("❌ Login error:", error);
-        res.status(500).json({ error: 'Server error. Try again later.' });
-    }
-});
-
-// ===== Website Request Endpoint (Protected) =====
-app.post('/request', verifyToken, async (req, res) => {
-    try {
-        const newRequest = new WebsiteRequest({
-            username: req.user.username, // Get username from token
-            phone: req.body.phone,
-            type: req.body.type,
-            requirements: req.body.requirements
-        });
-
-        await newRequest.save();
-        res.status(201).json({ message: "🎯 Website request submitted successfully!" });
-    } catch (error) {
-        console.error("❌ Request error:", error);
-        res.status(500).json({ error: "Error processing request. Please try again." });
-    }
-});
-
-// ===== Contact Form Endpoint =====
-app.post('/contact', async (req, res) => {
-    try {
-        const { name, email, message } = req.body;
-        const newContact = new Contact({ name, email, message });
-        await newContact.save();
-        res.status(201).json({ message: '📩 Message received successfully!' });
-    } catch (error) {
-        console.error("❌ Contact error:", error);
-        res.status(500).json({ error: 'Error submitting message. Try again later.' });
-    }
-});
-
-// ===== Server Start =====
-app.listen(PORT, () => {
-    console.log(`🚀 Server running at http://localhost:${PORT}`);
-});
+    toggleButton?.addEventListener("click", () => {
+        if (websiteList.style.display === "none" || websiteList.style.display === "") {
+            websiteList.style.display = "block";
+            toggleArrow.textContent = "▲";
+        } else {
+            websiteList.style.display = "none";
+            toggleArrow.textContent = "▼";
+        }
+    });
+}
