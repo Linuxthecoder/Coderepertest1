@@ -25,9 +25,10 @@ app.use(express.static('public'));
 mongoose.set('strictQuery', true);
 mongoose.set('debug', true);
 
-mongoose.connect(process.env.MONGO_URI || "mongodb+srv://Codereper:75iM273Z4nOh1r0J@website2.v6oux.mongodb.net/?retryWrites=true&w=majority&appName=Website2")
-  .then(() => console.log('✅ MongoDB connected'))
-  .catch(err => console.error('❌ MongoDB connection error:', err));
+// Replace with your MongoDB connection string directly
+mongoose.connect("mongodb+srv://Codereper:75iM273Z4nOh1r0J@website2.v6oux.mongodb.net/?retryWrites=true&w=majority&appName=Website2")
+    .then(() => console.log('✅ MongoDB connected'))
+    .catch(err => console.error('❌ MongoDB connection error:', err));
 
 // 🏛️ Schemas & Models
 const UserSchema = new mongoose.Schema({
