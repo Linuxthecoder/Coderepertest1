@@ -5,18 +5,13 @@ const jwt = require("jsonwebtoken");
 const bodyParser = require("body-parser");
 const cors = require("cors");
 
-// Initialize the app and middleware
 const app = express();
 app.use(cors());
 app.use(bodyParser.json());
 
-// Direct configuration values
-const JWT_SECRET = "b442349f670dcf6981d837ea0bf4ee0cc7c5cc7b25ada5c2d1f71f7f6ea02d901dabc7be7007c4d711804055838095bc13d1935b659d77bdab508770a50c2dd1"; // Replace with a stronger secret
+const JWT_SECRET = "your_jwt_secret_here"; // Replace with a stronger secret
+const MONGO_URI = "your_mongo_db_connection_string_here"; // Replace with your MongoDB URI
 
-// MongoDB Atlas connection string
-const MONGO_URI = "mongodb+srv://Codereper:bfJIZDDuL2jxxRxZ@website2.v6oux.mongodb.net/?retryWrites=true&w=majority&appName=Website2"; // Replace with your MongoDB Atlas URI
-
-// Database connection
 mongoose.connect(MONGO_URI, { useNewUrlParser: true, useUnifiedTopology: true })
     .then(() => console.log("MongoDB connected"))
     .catch(err => console.log("MongoDB connection error:", err));
@@ -40,9 +35,6 @@ const WebsiteRequestSchema = new mongoose.Schema({
 });
 
 const WebsiteRequest = mongoose.model("WebsiteRequest", WebsiteRequestSchema);
-
-// API Routes
-app.use(express.static('public'));
 
 // Signup route
 app.post("/signup", async (req, res) => {
@@ -78,21 +70,17 @@ app.post("/signup", async (req, res) => {
 app.post("/login", async (req, res) => {
     const { username, password } = req.body;
 
-    // Find the user by username
     const user = await User.findOne({ username });
     if (!user) {
         return res.status(400).json({ error: "Invalid credentials" });
     }
 
-    // Compare the password with the stored hashed password
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
         return res.status(400).json({ error: "Invalid credentials" });
     }
 
-    // Generate JWT token
     const token = jwt.sign({ userId: user._id, username: user.username }, JWT_SECRET, { expiresIn: "1h" });
-
     res.json({ message: "Login successful", token });
 });
 
@@ -106,13 +94,11 @@ app.post("/request", async (req, res) => {
     }
 
     try {
-        // Verify token
         const decoded = jwt.verify(token, JWT_SECRET);
         if (decoded.username !== username) {
             return res.status(403).json({ error: "Invalid token user" });
         }
 
-        // Create a new website request
         const newRequest = new WebsiteRequest({
             username,
             phone,
