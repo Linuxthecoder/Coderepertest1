@@ -9,8 +9,8 @@ const app = express();
 app.use(cors());
 app.use(bodyParser.json());
 
-const JWT_SECRET = "your_jwt_secret_here"; // Replace with a stronger secret
-const MONGO_URI = "your_mongo_db_connection_string_here"; // Replace with your MongoDB URI
+const JWT_SECRET = "b442349f670dcf6981d837ea0bf4ee0cc7c5cc7b25ada5c2d1f71f7f6ea02d901dabc7be7007c4d711804055838095bc13d1935b659d77bdab508770a50c2dd1"; // Replace with a stronger secret
+const MONGO_URI = "mongodb+srv://Codereper:bfJIZDDuL2jxxRxZ@website2.v6oux.mongodb.net/?retryWrites=true&w=majority&appName=Website2"; // Replace with your MongoDB URI
 
 mongoose.connect(MONGO_URI, { useNewUrlParser: true, useUnifiedTopology: true })
     .then(() => console.log("MongoDB connected"))
