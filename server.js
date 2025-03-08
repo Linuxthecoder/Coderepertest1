@@ -22,10 +22,8 @@ app.use(express.json());
 app.use(express.static('public'));
 
 // ===== MongoDB Connection =====
-mongoose.connect(MONGO_URI, {
-    useNewUrlParser: true,  // Optional now, but added for legacy code support
-    useUnifiedTopology: true, // Optional now, but added for legacy code support
-}).then(() => console.log('✅ MongoDB connected'))
+mongoose.connect(MONGO_URI)
+  .then(() => console.log('✅ MongoDB connected'))
   .catch(err => console.error('❌ MongoDB connection error:', err));
 
 // ===== Schemas & Models =====
@@ -97,6 +95,7 @@ app.post('/signup', async (req, res) => {
         });
 
         await newUser.save();
+        console.log("New user saved:", newUser);  // Added logging to check if the user is saved
         res.status(201).json({ message: '🎉 User registered successfully!' });
     } catch (error) {
         console.error("❌ Signup error:", error);
@@ -142,6 +141,7 @@ app.post('/request', verifyToken, async (req, res) => {
         });
 
         await newRequest.save();
+        console.log("New request saved:", newRequest);  // Added logging to check if the request is saved
         res.status(201).json({ message: "🎯 Website request submitted successfully!" });
     } catch (error) {
         console.error("❌ Request error:", error);
@@ -155,6 +155,7 @@ app.post('/contact', async (req, res) => {
         const { name, email, message } = req.body;
         const newContact = new Contact({ name, email, message });
         await newContact.save();
+        console.log("New contact message saved:", newContact);  // Added logging to check if the contact message is saved
         res.status(201).json({ message: '📩 Message received successfully!' });
     } catch (error) {
         console.error("❌ Contact error:", error);
