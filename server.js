@@ -1,4 +1,5 @@
 // server.js
+const path = require('path');
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
@@ -9,8 +10,8 @@ const app = express();
 
 // ===== Configuration =====
 const config = {
-  MONGO_URI: 'mongodb+srv://pubghearbeat:qL4uaj9moZeVGm1v@clusterforcodethereper.60yo9.mongodb.net/?retryWrites=true&w=majority&appName=clusterforcodethereper',
-  JWT_SECRET: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiIxMjM0NSIsInVzZXJuYW1lIjoibXVzdGFmYSIsImlhdCI6MTc0MTU0Nzc4OCwiZXhwIjoxNzQxNTUxMzg4fQ.raBqOrz7wn9YjyGAgyoEdarjcW5pS_Exzu_yFDgIXQo',
+  MONGO_URI: 'mongodb+srv://pubghearbeat:qL4uaj9moZeVGm1v@clusterforcodethereper.60yo9.mongodb.net/code-reaper?retryWrites=true&w=majority',
+  JWT_SECRET: 'X5$8qL!9nT2vW#zY*KpF7aDhGmRjSd4w6cVbN3eZrCtYxUvIuHkOlPqAsBfJgM1oIi', // Replace with a strong secret
   FRONTEND_URL: 'https://www-code-reaper-com.onrender.com',
   PORT: process.env.PORT || 5000
 };
@@ -19,6 +20,7 @@ const config = {
 const userSchema = new mongoose.Schema({
   username: { type: String, unique: true, required: true },
   email: { type: String, unique: true, required: true },
+  phone: { type: String, required: true }, // Added phone field
   password: { type: String, required: true },
   createdAt: { type: Date, default: Date.now }
 });
@@ -49,20 +51,13 @@ app.use(cors({
   credentials: true
 }));
 app.use(express.json());
+app.use(express.static(path.join(__dirname, 'public')));
 
-// Add this after CORS middleware
-app.use(express.static('public'));  // Serve static files from 'public' directory
-
-// Handle client-side routing
-app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'index.html'));
-});
-
-// Authentication middleware
+// ===== Authentication Middleware =====
 const protect = async (req, res, next) => {
   try {
     const token = req.headers.authorization?.split(' ')[1];
-    if (!token) return res.status(401).json({ error: 'Not authorized' });
+    if (!token) return res.status(401).json({ error: 'Authorization token missing' });
 
     const decoded = jwt.verify(token, config.JWT_SECRET);
     const user = await User.findById(decoded.userId);
@@ -71,7 +66,8 @@ const protect = async (req, res, next) => {
     req.user = user;
     next();
   } catch (error) {
-    res.status(401).json({ error: 'Invalid token' });
+    console.error('Authentication error:', error);
+    res.status(401).json({ error: 'Invalid or expired token' });
   }
 };
 
@@ -79,12 +75,17 @@ const protect = async (req, res, next) => {
 // Signup Route
 app.post('/api/signup', async (req, res) => {
   try {
-    const { username, email, password } = req.body;
+    const { username, email, phone, password } = req.body;
+
+    // Validation
+    if (!username || !email || !phone || !password) {
+      return res.status(400).json({ error: 'All fields are required' });
+    }
 
     // Check existing user
     const existingUser = await User.findOne({ $or: [{ username }, { email }] });
     if (existingUser) {
-      return res.status(400).json({ 
+      return res.status(409).json({ 
         error: existingUser.username === username 
           ? 'Username already exists' 
           : 'Email already registered'
@@ -93,14 +94,37 @@ app.post('/api/signup', async (req, res) => {
 
     // Create user
     const hashedPassword = await bcrypt.hash(password, 10);
-    const user = await User.create({ username, email, password: hashedPassword });
+    const user = await User.create({ 
+      username, 
+      email, 
+      phone, 
+      password: hashedPassword 
+    });
 
     // Generate token
-    const token = jwt.sign({ userId: user._id }, config.JWT_SECRET, { expiresIn: '2h' });
+    const token = jwt.sign(
+      { userId: user._id }, 
+      config.JWT_SECRET, 
+      { expiresIn: '2h' }
+    );
 
-    res.status(201).json({ token, username: user.username, email: user.email });
+    res.status(201).json({ 
+      success: true,
+      token,
+      user: {
+        id: user._id,
+        username: user.username,
+        email: user.email,
+        phone: user.phone
+      }
+    });
+
   } catch (error) {
-    res.status(500).json({ error: 'Server error' });
+    console.error('Signup error:', error);
+    res.status(500).json({ 
+      success: false,
+      error: 'Internal server error' 
+    });
   }
 });
 
@@ -108,18 +132,46 @@ app.post('/api/signup', async (req, res) => {
 app.post('/api/login', async (req, res) => {
   try {
     const { username, password } = req.body;
-    const user = await User.findOne({ username });
 
-    if (!user || !(await bcrypt.compare(password, user.password))) {
+    // Validate input
+    if (!username || !password) {
+      return res.status(400).json({ error: 'Username and password required' });
+    }
+
+    const user = await User.findOne({ username });
+    if (!user) {
+      return res.status(401).json({ error: 'Invalid credentials' });
+    }
+
+    const isPasswordValid = await bcrypt.compare(password, user.password);
+    if (!isPasswordValid) {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
 
     // Generate token
-    const token = jwt.sign({ userId: user._id }, config.JWT_SECRET, { expiresIn: '2h' });
+    const token = jwt.sign(
+      { userId: user._id }, 
+      config.JWT_SECRET, 
+      { expiresIn: '2h' }
+    );
 
-    res.json({ token, username: user.username, email: user.email });
+    res.json({
+      success: true,
+      token,
+      user: {
+        id: user._id,
+        username: user.username,
+        email: user.email,
+        phone: user.phone
+      }
+    });
+
   } catch (error) {
-    res.status(500).json({ error: 'Server error' });
+    console.error('Login error:', error);
+    res.status(500).json({ 
+      success: false,
+      error: 'Internal server error' 
+    });
   }
 });
 
@@ -128,6 +180,11 @@ app.post('/api/requests', protect, async (req, res) => {
   try {
     const { phone, websiteType, requirements } = req.body;
 
+    // Validate request
+    if (!phone || !websiteType || !requirements) {
+      return res.status(400).json({ error: 'All fields are required' });
+    }
+
     const newRequest = await WebsiteRequest.create({
       user: req.user._id,
       phone,
@@ -135,10 +192,23 @@ app.post('/api/requests', protect, async (req, res) => {
       requirements
     });
 
-    res.status(201).json(newRequest);
+    res.status(201).json({
+      success: true,
+      request: newRequest
+    });
+
   } catch (error) {
-    res.status(500).json({ error: 'Failed to create request' });
+    console.error('Request error:', error);
+    res.status(500).json({ 
+      success: false,
+      error: 'Failed to create request' 
+    });
   }
+});
+
+// Client-side routing
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
 // ===== Start Server =====
