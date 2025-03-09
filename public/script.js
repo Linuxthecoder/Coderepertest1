@@ -191,14 +191,12 @@ function initAuthSystem() {
 
 function updateUserProfile(username, email) {
     loggedInUser.innerHTML = `<span>${username}</span>`;
-    
     loggedInUser.classList.remove("hidden");
     openLoginBtn.classList.add("hidden");
     loggedInUser.parentNode.appendChild(logoutBtn);
     logoutBtn.classList.remove("hidden");
     }
-}
-
+    
 function clearMessages() {
     document.getElementById("error-message").textContent = "";
     document.getElementById("signup-error-message").textContent = "";
