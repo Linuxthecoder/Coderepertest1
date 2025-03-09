@@ -5,49 +5,13 @@ document.addEventListener("DOMContentLoaded", () => {
     initWebsiteRequestForm();
 });
 
-// ===== Matrix Effect ===== 
 // ===== Matrix Effect =====
 function initMatrixEffect() {
     const canvas = document.getElementById("matrixCanvas");
     if (!canvas) return;
 
     const ctx = canvas.getContext("2d");
-
-    function resizeCanvas() {
-        const header = document.querySelector("header");
-        canvas.width = header.clientWidth;
-        canvas.height = header.clientHeight;
-    }
-
-    resizeCanvas();
-    window.addEventListener("resize", resizeCanvas);
-
-    const letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ123456789@#$%^&*()";
-    const matrix = letters.split("");
-
-    const fontSize = 16;
-    const columns = Math.floor(canvas.width / fontSize);
-    const drops = Array(columns).fill(0);
-
-    function drawMatrix() {
-        ctx.fillStyle = "rgba(0, 0, 0, 0.1)";
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-        ctx.fillStyle = "limegreen";
-        ctx.font = `${fontSize}px monospace`;
-
-        for (let i = 0; i < drops.length; i++) {
-            const text = matrix[Math.floor(Math.random() * matrix.length)];
-            ctx.fillText(text, i * fontSize, drops[i] * fontSize);
-
-            if (drops[i] * fontSize > canvas.height && Math.random() > 0.975) {
-                drops[i] = 0;
-            }
-            drops[i]++;
-        }
-    }
-
-    setInterval(drawMatrix, 50);
+    // ... keep your existing matrix effect code ...
 }
 
 // ===== Authentication System =====
@@ -65,6 +29,9 @@ function initAuthSystem() {
     openLoginBtn?.addEventListener("click", (e) => {
         e.preventDefault();
         loginModal.style.display = "flex";
+        loginForm.classList.remove("hidden");
+        signupForm.classList.add("hidden");
+        clearMessages();
     });
 
     closeModalBtn?.addEventListener("click", () => {
@@ -95,28 +62,31 @@ function initAuthSystem() {
     // Login logic
     loginForm?.addEventListener("submit", async (e) => {
         e.preventDefault();
-        const loginData = {
-            username: document.getElementById("login-username").value,
-            password: document.getElementById("login-password").value
-        };
+        const username = document.getElementById("login-username").value;
+        const password = document.getElementById("login-password").value;
 
-        clearMessages();
-        
         try {
-            const users = JSON.parse(localStorage.getItem("users") || [];
-            const user = users.find(u => u.username === loginData.username && u.password === loginData.password);
+            const response = await fetch("/login", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ username, password })
+            });
+
+            const data = await response.json();
             
-            if (!user) {
-                showLoginError("❌ Invalid username or password");
+            if (!response.ok) {
+                showLoginError(data.error || "Login failed");
                 return;
             }
 
-            localStorage.setItem("token", "dummy-token");
-            localStorage.setItem("currentUser", JSON.stringify(user));
-            showLoginSuccess("✅ Login successful!");
+            localStorage.setItem("token", data.token);
+            localStorage.setItem("username", data.username);
+            localStorage.setItem("email", data.email);
+            
+            showLoginSuccess(data.message);
             setTimeout(() => window.location.reload(), 1000);
         } catch (error) {
-            showLoginError("❌ Login failed");
+            showLoginError("Network error. Try again later");
         }
     });
 
@@ -130,39 +100,43 @@ function initAuthSystem() {
             password: document.getElementById("signup-password").value
         };
 
-        clearMessages();
-        
         try {
-            const users = JSON.parse(localStorage.getItem("users") || [];
+            const response = await fetch("/signup", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(userData)
+            });
+
+            const data = await response.json();
             
-            if (users.some(u => u.username === userData.username)) {
-                showSignupError("❌ Username already exists");
-                return;
-            }
-            
-            if (users.some(u => u.email === userData.email)) {
-                showSignupError("❌ Email already registered");
+            if (!response.ok) {
+                showSignupError(data.error || "Signup failed");
                 return;
             }
 
-            users.push(userData);
-            localStorage.setItem("users", JSON.stringify(users));
-            showSignupSuccess("✅ Signup successful! Redirecting...");
-            setTimeout(() => window.location.reload(), 1500);
+            showSignupSuccess(data.message);
+            signupForm.reset();
+            setTimeout(() => {
+                loginForm.classList.remove("hidden");
+                signupForm.classList.add("hidden");
+            }, 1500);
         } catch (error) {
-            showSignupError("❌ Signup failed");
+            showSignupError("Network error. Try again later");
         }
     });
 
-    // Profile and logout
+    // Profile management
     const logoutBtn = document.createElement("button");
     logoutBtn.textContent = "Logout";
-    logoutBtn.classList.add("logout-btn", "hidden");
+    logoutBtn.className = "logout-btn hidden";
 
-    // Check existing login
-    const currentUser = JSON.parse(localStorage.getItem("currentUser"));
-    if (currentUser) {
-        updateUserProfile(currentUser);
+    // Load user profile
+    const token = localStorage.getItem("token");
+    const username = localStorage.getItem("username");
+    const email = localStorage.getItem("email");
+    
+    if (token && username) {
+        updateUserProfile(username, email);
     }
 
     // Profile click handler
@@ -176,34 +150,25 @@ function initAuthSystem() {
     });
 
     logoutBtn?.addEventListener("click", () => {
-        localStorage.removeItem("token");
-        localStorage.removeItem("currentUser");
+        localStorage.clear();
         window.location.reload();
     });
+
+    function updateUserProfile(username, email) {
+        loggedInUser.innerHTML = `
+            <img src="${getGravatar(email)}" class="profile-img" alt="${username}">
+            <span>${username}</span>
+        `;
+        loggedInUser.classList.remove("hidden");
+        openLoginBtn.classList.add("hidden");
+        loggedInUser.parentNode.appendChild(logoutBtn);
+        logoutBtn.classList.remove("hidden");
+    }
 }
 
 // Helper functions
-function updateUserProfile(user) {
-    const loggedInUser = document.getElementById("loggedInUser");
-    const openLoginBtn = document.getElementById("openLogin");
-    
-    // Add profile image
-    const profileImg = document.createElement("img");
-    profileImg.classList.add("profile-img");
-    profileImg.src = getGravatar(user.email) || "https://via.placeholder.com/30";
-    profileImg.alt = "Profile";
-    
-    loggedInUser.innerHTML = "";
-    loggedInUser.appendChild(profileImg);
-    loggedInUser.insertAdjacentHTML("beforeend", ` ${user.username}`);
-    
-    openLoginBtn.classList.add("hidden");
-    loggedInUser.classList.remove("hidden");
-    loggedInUser.parentElement.appendChild(logoutBtn);
-}
-
 function getGravatar(email) {
-    if (!email) return null;
+    if (!email) return "https://via.placeholder.com/30";
     const hash = md5(email.trim().toLowerCase());
     return `https://www.gravatar.com/avatar/${hash}?d=retro`;
 }
@@ -214,23 +179,61 @@ function clearMessages() {
 }
 
 function showLoginSuccess(message) {
-    document.getElementById("error-message").style.color = "limegreen";
-    document.getElementById("error-message").textContent = message;
+    const elem = document.getElementById("error-message");
+    elem.style.color = "limegreen";
+    elem.textContent = message;
 }
 
 function showLoginError(message) {
-    document.getElementById("error-message").style.color = "red";
-    document.getElementById("error-message").textContent = message;
+    const elem = document.getElementById("error-message");
+    elem.style.color = "red";
+    elem.textContent = message;
 }
 
 function showSignupSuccess(message) {
-    document.getElementById("signup-error-message").style.color = "limegreen";
-    document.getElementById("signup-error-message").textContent = message;
+    const elem = document.getElementById("signup-error-message");
+    elem.style.color = "limegreen";
+    elem.textContent = message;
 }
 
 function showSignupError(message) {
-    document.getElementById("signup-error-message").style.color = "red";
-    document.getElementById("signup-error-message").textContent = message;
+    const elem = document.getElementById("signup-error-message");
+    elem.style.color = "red";
+    elem.textContent = message;
+}
+
+// ===== Website Request Form =====
+function initWebsiteRequestForm() {
+    const requestForm = document.getElementById("requestForm");
+    
+    requestForm?.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        
+        const formData = {
+            phone: document.getElementById("requestPhone").value,
+            type: document.getElementById("websiteType").value,
+            requirements: document.getElementById("requirements").value,
+            username: localStorage.getItem("username")
+        };
+
+        try {
+            const response = await fetch("/request", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": `Bearer ${localStorage.getItem("token")}`
+                },
+                body: JSON.stringify(formData)
+            });
+
+            if (!response.ok) throw new Error("Request failed");
+            
+            alert("Request submitted successfully!");
+            requestForm.reset();
+        } catch (error) {
+            alert("Request failed. Please try again.");
+        }
+    });
 }
 
 // ===== Toggle Website List =====
@@ -240,12 +243,7 @@ function initToggleList() {
     const toggleArrow = document.getElementById("toggleArrow");
 
     toggleButton?.addEventListener("click", () => {
-        if (websiteList.style.display === "none" || websiteList.style.display === "") {
-            websiteList.style.display = "block";
-            toggleArrow.textContent = "▲";
-        } else {
-            websiteList.style.display = "none";
-            toggleArrow.textContent = "▼";
-        }
+        websiteList.classList.toggle("hidden");
+        toggleArrow.textContent = websiteList.classList.contains("hidden") ? "▼" : "▲";
     });
 }
