@@ -59,14 +59,14 @@ function initAuthSystem() {
         clearMessages();
     });
 
-    // Login logic
+    // Login logic - Fixed endpoint
     loginForm?.addEventListener("submit", async (e) => {
         e.preventDefault();
         const username = document.getElementById("login-username").value;
         const password = document.getElementById("login-password").value;
 
         try {
-            const response = await fetch("/login", {
+            const response = await fetch("/api/login", {  // Changed to /api/login
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ username, password })
@@ -80,17 +80,17 @@ function initAuthSystem() {
             }
 
             localStorage.setItem("token", data.token);
-            localStorage.setItem("username", data.username);
-            localStorage.setItem("email", data.email);
+            localStorage.setItem("username", data.user.username);
+            localStorage.setItem("email", data.user.email);
             
-            showLoginSuccess(data.message);
+            showLoginSuccess("Login successful!");
             setTimeout(() => window.location.reload(), 1000);
         } catch (error) {
             showLoginError("Network error. Try again later");
         }
     });
 
-    // Signup logic
+    // Signup logic - Fixed endpoint and error handling
     signupForm?.addEventListener("submit", async (e) => {
         e.preventDefault();
         const userData = {
@@ -101,7 +101,7 @@ function initAuthSystem() {
         };
 
         try {
-            const response = await fetch("/signup", {
+            const response = await fetch("/api/signup", {  // Changed to /api/signup
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(userData)
@@ -114,7 +114,7 @@ function initAuthSystem() {
                 return;
             }
 
-            showSignupSuccess(data.message);
+            showSignupSuccess("Signup successful!");
             signupForm.reset();
             setTimeout(() => {
                 loginForm.classList.remove("hidden");
@@ -211,13 +211,13 @@ function initWebsiteRequestForm() {
         
         const formData = {
             phone: document.getElementById("requestPhone").value,
-            type: document.getElementById("websiteType").value,
+            websiteType: document.getElementById("websiteType").value, // Fixed field name
             requirements: document.getElementById("requirements").value,
             username: localStorage.getItem("username")
         };
 
         try {
-            const response = await fetch("/request", {
+            const response = await fetch("/api/requests", {  // Changed to /api/requests
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
@@ -226,12 +226,16 @@ function initWebsiteRequestForm() {
                 body: JSON.stringify(formData)
             });
 
-            if (!response.ok) throw new Error("Request failed");
+            const data = await response.json();  // Added response parsing
+            
+            if (!response.ok) {
+                throw new Error(data.error || "Request failed");
+            }
             
             alert("Request submitted successfully!");
             requestForm.reset();
         } catch (error) {
-            alert("Request failed. Please try again.");
+            alert(error.message || "Request failed. Please try again.");
         }
     });
 }
