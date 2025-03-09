@@ -51,8 +51,14 @@ function initMatrixEffect() {
 
 // ===== Authentication System =====
 function initAuthSystem() {
-    const signupForm = document.getElementById("signupForm");
+    const loginModal = document.getElementById("authModal");
+    const openLoginBtn = document.getElementById("openLogin");
+    const closeModalBtn = document.querySelector("#authModal .close");
+    const loggedInUser = document.getElementById("loggedInUser");
     const loginForm = document.getElementById("loginForm");
+    const signupForm = document.getElementById("signupForm");
+    const showSignUp = document.getElementById("showSignUp");
+    const showLogin = document.getElementById("showLogin");
 
     
 
@@ -117,20 +123,7 @@ function initAuthSystem() {
     });
 }
 
-  // Show Logout Button
-    loggedInUser?.addEventListener("click", () => {
-        logoutBtn.classList.toggle("hidden");
-    });
-
-    // Logout Functionality
-    logoutBtn?.addEventListener("click", () => {
-        localStorage.removeItem("token");
-        localStorage.removeItem("username");
-        window.location.reload();
-    });
-}
-
-    // Logout Button
+  // Logout Button
     const logoutBtn = document.createElement("button");
     logoutBtn.textContent = "Logout";
     logoutBtn.classList.add("logout-btn", "hidden");
@@ -145,6 +138,18 @@ function initAuthSystem() {
         logoutBtn.classList.remove("hidden");
     }
 
+ // Show Logout Button
+    loggedInUser?.addEventListener("click", () => {
+        logoutBtn.classList.toggle("hidden");
+    });
+
+    // Logout Functionality
+    logoutBtn?.addEventListener("click", () => {
+        localStorage.removeItem("token");
+        localStorage.removeItem("username");
+        window.location.reload();
+    });
+}
     // Open Login Modal
     openLoginBtn?.addEventListener("click", (e) => {
         e.preventDefault();
