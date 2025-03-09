@@ -21,7 +21,7 @@ function initMatrixEffect() {
     resizeCanvas();
     window.addEventListener("resize", resizeCanvas);
 
-    const letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ123456789@#$%^&*()YOUHAVEBEENHACKEDUSINGLINUXCODETHEREPER!@#$%^&*()?><l:"}{";
+    const letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ123456789@#$%^&*()YOUHAVEBEENHACKEDUSINGLINUXCODETHEREPER!@#$%^&*()?><l"
     const matrix = letters.split("");
 
     const fontSize = 16;
@@ -279,5 +279,4 @@ function initToggleList() {
             toggleArrow.textContent = "▼";
         }
     });
-}
-
+} }
