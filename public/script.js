@@ -21,7 +21,7 @@ function initMatrixEffect() {
     resizeCanvas();
     window.addEventListener("resize", resizeCanvas);
 
-    const letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ123456789@#$%^&*()YOUHAVEBEENHACKEDUSINGLINUXCODETHEREPER!@#$%^&*()?><l"
+    const letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ123456789@#$%^&*()YOUHAVEBEENHACKEDUSINGLINUXCODETHEREPER!@#$%^&*()?><l";
     const matrix = letters.split("");
 
     const fontSize = 16;
@@ -49,6 +49,19 @@ function initMatrixEffect() {
     setInterval(drawMatrix, 50);
 }
 
+// ===== Toggle Website List =====
+function initToggleList() {
+    const toggleButton = document.getElementById("toggleList");
+    const websiteList = document.getElementById("websiteList");
+    const toggleArrow = document.getElementById("toggleArrow");
+
+    toggleButton?.addEventListener("click", (e) => {
+        e.preventDefault();
+        websiteList.classList.toggle("hidden");
+        toggleArrow.textContent = websiteList.classList.contains("hidden") ? "▼" : "▲";
+    });
+}
+
 // ===== Authentication System =====
 function initAuthSystem() {
     const loginModal = document.getElementById("authModal");
@@ -59,6 +72,7 @@ function initAuthSystem() {
     const signupForm = document.getElementById("signupForm");
     const showSignUp = document.getElementById("showSignUp");
     const showLogin = document.getElementById("showLogin");
+    const authFields = document.getElementById("authFields");
 
     // Modal controls
     openLoginBtn?.addEventListener("click", (e) => {
@@ -94,14 +108,14 @@ function initAuthSystem() {
         clearMessages();
     });
 
-    // Login logic - Fixed endpoint
+    // Login logic
     loginForm?.addEventListener("submit", async (e) => {
         e.preventDefault();
         const username = document.getElementById("login-username").value;
         const password = document.getElementById("login-password").value;
 
         try {
-            const response = await fetch("/api/login", {  // Changed to /api/login
+            const response = await fetch("/api/login", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ username, password })
@@ -125,7 +139,7 @@ function initAuthSystem() {
         }
     });
 
-    // Signup logic - Fixed endpoint and error handling
+    // Signup logic
     signupForm?.addEventListener("submit", async (e) => {
         e.preventDefault();
         const userData = {
@@ -136,7 +150,7 @@ function initAuthSystem() {
         };
 
         try {
-            const response = await fetch("/api/signup", {  // Changed to /api/signup
+            const response = await fetch("/api/signup", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(userData)
@@ -174,6 +188,18 @@ function initAuthSystem() {
         updateUserProfile(username, email);
     }
 
+    // Auth state handler
+    window.handleAuthChange = () => {
+        if (localStorage.getItem("token")) {
+            authFields?.classList.add("hidden");
+        } else {
+            authFields?.classList.remove("hidden");
+        }
+    }
+
+    // Initial check
+    handleAuthChange();
+
     // Profile click handler
     loggedInUser?.addEventListener("click", (e) => {
         e.stopPropagation();
@@ -187,61 +213,76 @@ function initAuthSystem() {
     logoutBtn?.addEventListener("click", () => {
         localStorage.clear();
         window.location.reload();
+        handleAuthChange();
     });
 
-function updateUserProfile(username, email) {
-    loggedInUser.innerHTML = `<span>${username}</span>`;
-    loggedInUser.classList.remove("hidden");
-    openLoginBtn.classList.add("hidden");
-    loggedInUser.parentNode.appendChild(logoutBtn);
-    logoutBtn.classList.remove("hidden");
+    function updateUserProfile(username, email) {
+        loggedInUser.innerHTML = `<span>${username}</span>`;
+        loggedInUser.classList.remove("hidden");
+        openLoginBtn.classList.add("hidden");
+        loggedInUser.parentNode.appendChild(logoutBtn);
+        logoutBtn.classList.remove("hidden");
     }
     
-function clearMessages() {
-    document.getElementById("error-message").textContent = "";
-    document.getElementById("signup-error-message").textContent = "";
-}
+    function clearMessages() {
+        document.getElementById("error-message").textContent = "";
+        document.getElementById("signup-error-message").textContent = "";
+    }
 
-function showLoginSuccess(message) {
-    const elem = document.getElementById("error-message");
-    elem.style.color = "limegreen";
-    elem.textContent = message;
-}
+    function showLoginSuccess(message) {
+        const elem = document.getElementById("error-message");
+        elem.style.color = "limegreen";
+        elem.textContent = message;
+    }
 
-function showLoginError(message) {
-    const elem = document.getElementById("error-message");
-    elem.style.color = "red";
-    elem.textContent = message;
-}
+    function showLoginError(message) {
+        const elem = document.getElementById("error-message");
+        elem.style.color = "red";
+        elem.textContent = message;
+    }
 
-function showSignupSuccess(message) {
-    const elem = document.getElementById("signup-error-message");
-    elem.style.color = "limegreen";
-    elem.textContent = message;
-}
+    function showSignupSuccess(message) {
+        const elem = document.getElementById("signup-error-message");
+        elem.style.color = "limegreen";
+        elem.textContent = message;
+    }
 
-function showSignupError(message) {
-    const elem = document.getElementById("signup-error-message");
-    elem.style.color = "red";
-    elem.textContent = message;
+    function showSignupError(message) {
+        const elem = document.getElementById("signup-error-message");
+        elem.style.color = "red";
+        elem.textContent = message;
+    }
 }
 
 // ===== Website Request Form =====
 function initWebsiteRequestForm() {
     const requestForm = document.getElementById("requestForm");
+    const authFields = document.getElementById("authFields");
+    const requestStatus = document.getElementById("requestStatus");
     
+    // Check login status on load
+    if (localStorage.getItem("token")) {
+        authFields.classList.add("hidden");
+    }
+
     requestForm?.addEventListener("submit", async (e) => {
         e.preventDefault();
+        requestStatus.textContent = "";
         
+        if (!localStorage.getItem("token")) {
+            requestStatus.textContent = "Please login first!";
+            requestStatus.style.color = "red";
+            return;
+        }
+
         const formData = {
             phone: document.getElementById("requestPhone").value,
-            websiteType: document.getElementById("websiteType").value, // Fixed field name
-            requirements: document.getElementById("requirements").value,
-            username: localStorage.getItem("username")
+            websiteType: document.getElementById("websiteType").value,
+            requirements: document.getElementById("requirements").value
         };
 
         try {
-            const response = await fetch("/api/requests", {  // Changed to /api/requests
+            const response = await fetch("/api/requests", {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
@@ -250,33 +291,23 @@ function initWebsiteRequestForm() {
                 body: JSON.stringify(formData)
             });
 
-            const data = await response.json();  // Added response parsing
+            const data = await response.json();
             
             if (!response.ok) {
                 throw new Error(data.error || "Request failed");
             }
-            
-            alert("Request submitted successfully!");
+
+            requestStatus.textContent = "Request submitted successfully!";
+            requestStatus.style.color = "green";
             requestForm.reset();
+            
+            setTimeout(() => {
+                requestStatus.textContent = "";
+            }, 3000);
+
         } catch (error) {
-            alert(error.message || "Request failed. Please try again.");
+            requestStatus.textContent = error.message;
+            requestStatus.style.color = "red";
         }
     });
 }
-
-// ===== Toggle Website List =====
-function initToggleList() {
-    const toggleButton = document.getElementById("toggleList");
-    const websiteList = document.getElementById("websiteList");
-    const toggleArrow = document.getElementById("toggleArrow");
-
-    toggleButton?.addEventListener("click", () => {
-        if (websiteList.style.display === "none" || websiteList.style.display === "") {
-            websiteList.style.display = "block";
-            toggleArrow.textContent = "▲";
-        } else {
-            websiteList.style.display = "none";
-            toggleArrow.textContent = "▼";
-        }
-    });
-} }
