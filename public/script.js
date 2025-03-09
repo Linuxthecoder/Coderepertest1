@@ -2,6 +2,7 @@ document.addEventListener("DOMContentLoaded", () => {
     initMatrixEffect();
     initAuthSystem();
     initToggleList();
+    initWebsiteRequestForm();
     initFormToggles();
 });
 
