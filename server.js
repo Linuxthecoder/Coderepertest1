@@ -50,6 +50,14 @@ app.use(cors({
 }));
 app.use(express.json());
 
+// Add this after CORS middleware
+app.use(express.static('public'));  // Serve static files from 'public' directory
+
+// Handle client-side routing
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
 // Authentication middleware
 const protect = async (req, res, next) => {
   try {
