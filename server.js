@@ -19,8 +19,10 @@ app.use(cors({
 app.use(express.json());
 app.use(express.static('public'));
 
-// ===== Connect to MongoDB Atlas =====
-mongoose.connect(process.env.MONGO_URI || "mongodb+srv://Codereper:75iM273Z4nOh1r0J@website2.v6oux.mongodb.net/?retryWrites=true&w=majority&appName=Website2", {
+// ===== MongoDB Connection Fix =====
+const mongoURI = process.env.MONGO_URI || "mongodb+srv://pubghearbeat:qL4uaj9moZeVGm1v@clusterforcodethereper.60yo9.mongodb.net/?retryWrites=true&w=majority&appName=clusterforcodethereper";
+
+mongoose.connect(mongoURI, {
     useNewUrlParser: true,
     useUnifiedTopology: true
 }).then(() => console.log('✅ MongoDB connected'))
