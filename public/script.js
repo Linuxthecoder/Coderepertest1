@@ -49,144 +49,73 @@ function initMatrixEffect() {
     setInterval(drawMatrix, 50);
 }
 
+document.addEventListener("DOMContentLoaded", () => {
+    initAuthSystem();
+});
+
 // ===== Authentication System =====
 function initAuthSystem() {
-    const loginModal = document.getElementById("authModal");
-    const openLoginBtn = document.getElementById("openLogin");
-    const closeModalBtn = document.querySelector("#authModal .close");
-    const loggedInUser = document.getElementById("loggedInUser");
-    const loginForm = document.getElementById("loginForm");
     const signupForm = document.getElementById("signupForm");
-    const showSignUp = document.getElementById("showSignUp");
-    const showLogin = document.getElementById("showLogin");
+    const loginForm = document.getElementById("loginForm");
 
-    // Logout Button
-    const logoutBtn = document.createElement("button");
-    logoutBtn.textContent = "Logout";
-    logoutBtn.classList.add("logout-btn", "hidden");
+    // ===== Signup Form Submission =====
+    signupForm?.addEventListener("submit", async (event) => {
+        event.preventDefault();
 
-    const storedUser = localStorage.getItem("username");
-    if (storedUser) {
-        openLoginBtn.classList.add("hidden");
-        loggedInUser.textContent = storedUser;
-        loggedInUser.classList.remove("hidden");
+        const userData = {
+            username: document.getElementById("signup-username").value,
+            email: document.getElementById("signup-email").value,
+            phone: document.getElementById("signup-phone").value,
+            password: document.getElementById("signup-password").value,
+        };
 
-        loggedInUser.parentElement.appendChild(logoutBtn);
-        logoutBtn.classList.remove("hidden");
-    }
+        try {
+            const response = await fetch("/signup", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(userData),
+            });
 
-    // Open Login Modal
-    openLoginBtn?.addEventListener("click", (e) => {
-        e.preventDefault();
-        loginModal.style.display = "flex";
-    });
-
-    // Close Login Modal
-    closeModalBtn?.addEventListener("click", () => {
-        loginModal.style.display = "none";
-    });
-
-    window.onclick = function (event) {
-        if (event.target === loginModal) {
-            loginModal.style.display = "none";
+            const data = await response.json();
+            if (response.ok) {
+                alert("✅ Signup successful! You can now log in.");
+                signupForm.reset();
+            } else {
+                document.getElementById("signup-error-message").textContent = data.error;
+            }
+        } catch (error) {
+            document.getElementById("signup-error-message").textContent = "❌ An error occurred.";
         }
-    };
-
-    // Show Sign Up Form
-    showSignUp?.addEventListener("click", (e) => {
-        e.preventDefault();
-        loginForm.classList.add("hidden");
-        signupForm.classList.remove("hidden");
     });
 
-    // Show Login Form
-    showLogin?.addEventListener("click", (e) => {
-        e.preventDefault();
-        signupForm.classList.add("hidden");
-        loginForm.classList.remove("hidden");
-    });
-
-    // Login Form Submission
+    // ===== Login Form Submission =====
     loginForm?.addEventListener("submit", async (event) => {
         event.preventDefault();
 
-        const username = document.getElementById("login-username").value;
-        const password = document.getElementById("login-password").value;
+        const loginData = {
+            username: document.getElementById("login-username").value,
+            password: document.getElementById("login-password").value,
+        };
 
         try {
             const response = await fetch("/login", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ username, password }),
+                body: JSON.stringify(loginData),
             });
 
             const data = await response.json();
             if (response.ok) {
                 localStorage.setItem("token", data.token);
                 localStorage.setItem("username", data.username);
+                alert("✅ Login successful!");
                 window.location.reload();
             } else {
                 document.getElementById("error-message").textContent = data.error;
             }
         } catch (error) {
-            document.getElementById("error-message").textContent = "An error occurred. Please try again.";
+            document.getElementById("error-message").textContent = "❌ Login failed.";
         }
-    });
-
-    // Show Logout Button
-    loggedInUser?.addEventListener("click", () => {
-        logoutBtn.classList.toggle("hidden");
-    });
-
-    // Logout Functionality
-    logoutBtn?.addEventListener("click", () => {
-        localStorage.removeItem("token");
-        localStorage.removeItem("username");
-        window.location.reload();
-    });
-}
-
-// ===== Website Request Form =====
-function initWebsiteRequestForm() {
-    const requestForm = document.getElementById("requestForm");
-    const messageDiv = document.getElementById("requestStatus");
-
-    requestForm?.addEventListener("submit", async (event) => {
-        event.preventDefault();
-
-        if (!localStorage.getItem("token")) {
-            messageDiv.textContent = "Please login first.";
-            messageDiv.className = "message error";
-            messageDiv.hidden = false;
-            return;
-        }
-
-        const formData = {
-            phone: document.getElementById("requestPhone").value,
-            type: document.getElementById("websiteType").value,
-            requirements: document.getElementById("requirements").value,
-            username: localStorage.getItem("username"),
-        };
-
-        try {
-            await fetch("/request", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    Authorization: `Bearer ${localStorage.getItem("token")}`,
-                },
-                body: JSON.stringify(formData),
-            });
-
-            messageDiv.textContent = "Request submitted successfully!";
-            messageDiv.className = "message success";
-            requestForm.reset();
-        } catch (error) {
-            messageDiv.textContent = "An error occurred. Please try again.";
-            messageDiv.className = "message error";
-        }
-
-        messageDiv.hidden = false;
     });
 }
 
