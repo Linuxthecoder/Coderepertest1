@@ -60,8 +60,6 @@ function initAuthSystem() {
     const showSignUp = document.getElementById("showSignUp");
     const showLogin = document.getElementById("showLogin");
 
-    
-
     // ===== Signup Form Submission =====
     signupForm?.addEventListener("submit", async (event) => {
         event.preventDefault();
