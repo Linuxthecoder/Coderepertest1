@@ -1,8 +1,8 @@
 document.addEventListener("DOMContentLoaded", () => {
     initMatrixEffect();
     initAuthSystem();
-    initWebsiteRequestForm();
     initToggleList();
+    initFormToggles();
 });
 
 // ===== Matrix Effect =====
@@ -48,10 +48,6 @@ function initMatrixEffect() {
 
     setInterval(drawMatrix, 50);
 }
-
-document.addEventListener("DOMContentLoaded", () => {
-    initAuthSystem();
-});
 
 // ===== Authentication System =====
 function initAuthSystem() {
@@ -133,5 +129,25 @@ function initToggleList() {
             websiteList.style.display = "none";
             toggleArrow.textContent = "▼";
         }
+    });
+}
+
+// ===== Form Toggle Logic =====
+function initFormToggles() {
+    const showLoginFormButton = document.getElementById("showLoginForm");
+    const showSignupFormButton = document.getElementById("showSignupForm");
+    const loginFormContainer = document.getElementById("loginFormContainer");
+    const signupFormContainer = document.getElementById("signupFormContainer");
+
+    // Toggle login form
+    showLoginFormButton.addEventListener("click", () => {
+        loginFormContainer.style.display = "block";
+        signupFormContainer.style.display = "none";
+    });
+
+    // Toggle signup form
+    showSignupFormButton.addEventListener("click", () => {
+        signupFormContainer.style.display = "block";
+        loginFormContainer.style.display = "none";
     });
 }
