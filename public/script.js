@@ -1,313 +1,217 @@
-document.addEventListener("DOMContentLoaded", () => {
-    initMatrixEffect();
-    initAuthSystem();
-    initToggleList();
-    initWebsiteRequestForm();
+// server.js
+const path = require('path');
+const express = require('express');
+const mongoose = require('mongoose');
+const cors = require('cors');
+const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
+
+const app = express();
+
+// ===== Configuration =====
+const config = {
+  MONGO_URI: 'mongodb+srv://pubghearbeat:qL4uaj9moZeVGm1v@clusterforcodethereper.60yo9.mongodb.net/code-reaper?retryWrites=true&w=majority',
+  JWT_SECRET: 'X5$8qL!9nT2vW#zY*KpF7aDhGmRjSd4w6cVbN3eZrCtYxUvIuHkOlPqAsBfJgM1oIi', // Replace with a strong secret
+  FRONTEND_URL: 'https://www-code-reaper-com.onrender.com',
+  PORT: process.env.PORT || 5000
+};
+
+// ===== Database Models =====
+const userSchema = new mongoose.Schema({
+  username: { type: String, unique: true, required: true },
+  email: { type: String, unique: true, required: true },
+  phone: { type: String, required: true }, // Added phone field
+  password: { type: String, required: true },
+  createdAt: { type: Date, default: Date.now }
 });
 
-// ===== Matrix Effect =====
-function initMatrixEffect() {
-    const canvas = document.getElementById("matrixCanvas");
-    if (!canvas) return;
+const websiteRequestSchema = new mongoose.Schema({
+  user: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+  phone: { type: String, required: true },
+  websiteType: { type: String, required: true },
+  requirements: { type: String, required: true },
+  status: { type: String, default: 'Pending' },
+  createdAt: { type: Date, default: Date.now }
+});
 
-    const ctx = canvas.getContext("2d");
+const User = mongoose.model('User', userSchema);
+const WebsiteRequest = mongoose.model('WebsiteRequest', websiteRequestSchema);
 
-    function resizeCanvas() {
-        const header = document.querySelector("header");
-        canvas.width = header.clientWidth;
-        canvas.height = header.clientHeight;
+// ===== Database Connection =====
+mongoose.connect(config.MONGO_URI, {
+  useNewUrlParser: true,
+  useUnifiedTopology: true
+})
+.then(() => console.log('✅ MongoDB connected'))
+.catch(err => console.error('❌ MongoDB connection error:', err));
+
+// ===== Middleware =====
+app.use(cors({
+  origin: config.FRONTEND_URL,
+  credentials: true
+}));
+app.use(express.json());
+app.use(express.static(path.join(__dirname, 'public')));
+
+// ===== Authentication Middleware =====
+const protect = async (req, res, next) => {
+  try {
+    const token = req.headers.authorization?.split(' ')[1];
+    if (!token) return res.status(401).json({ error: 'Authorization token missing' });
+
+    const decoded = jwt.verify(token, config.JWT_SECRET);
+    const user = await User.findById(decoded.userId);
+    if (!user) return res.status(401).json({ error: 'User not found' });
+
+    req.user = user;
+    next();
+  } catch (error) {
+    console.error('Authentication error:', error);
+    res.status(401).json({ error: 'Invalid or expired token' });
+  }
+};
+
+// ===== Routes =====
+// Signup Route
+app.post('/api/signup', async (req, res) => {
+  try {
+    const { username, email, phone, password } = req.body;
+
+    // Validation
+    if (!username || !email || !phone || !password) {
+      return res.status(400).json({ error: 'All fields are required' });
     }
 
-    resizeCanvas();
-    window.addEventListener("resize", resizeCanvas);
-
-    const letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ123456789@#$%^&*()YOUHAVEBEENHACKEDUSINGLINUXCODETHEREPER!@#$%^&*()?><l";
-    const matrix = letters.split("");
-
-    const fontSize = 16;
-    const columns = Math.floor(canvas.width / fontSize);
-    const drops = Array(columns).fill(0);
-
-    function drawMatrix() {
-        ctx.fillStyle = "rgba(0, 0, 0, 0.1)";
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-        ctx.fillStyle = "limegreen";
-        ctx.font = `${fontSize}px monospace`;
-
-        for (let i = 0; i < drops.length; i++) {
-            const text = matrix[Math.floor(Math.random() * matrix.length)];
-            ctx.fillText(text, i * fontSize, drops[i] * fontSize);
-
-            if (drops[i] * fontSize > canvas.height && Math.random() > 0.975) {
-                drops[i] = 0;
-            }
-            drops[i]++;
-        }
+    // Check existing user
+    const existingUser = await User.findOne({ $or: [{ username }, { email }] });
+    if (existingUser) {
+      return res.status(409).json({ 
+        error: existingUser.username === username 
+          ? 'Username already exists' 
+          : 'Email already registered'
+      });
     }
 
-    setInterval(drawMatrix, 50);
-}
-
-// ===== Toggle Website List =====
-function initToggleList() {
-    const toggleButton = document.getElementById("toggleList");
-    const websiteList = document.getElementById("websiteList");
-    const toggleArrow = document.getElementById("toggleArrow");
-
-    toggleButton?.addEventListener("click", (e) => {
-        e.preventDefault();
-        websiteList.classList.toggle("hidden");
-        toggleArrow.textContent = websiteList.classList.contains("hidden") ? "▼" : "▲";
-    });
-}
-
-// ===== Authentication System =====
-function initAuthSystem() {
-    const loginModal = document.getElementById("authModal");
-    const openLoginBtn = document.getElementById("openLogin");
-    const closeModalBtn = document.querySelector("#authModal .close");
-    const loggedInUser = document.getElementById("loggedInUser");
-    const loginForm = document.getElementById("loginForm");
-    const signupForm = document.getElementById("signupForm");
-    const showSignUp = document.getElementById("showSignUp");
-    const showLogin = document.getElementById("showLogin");
-    const authFields = document.getElementById("authFields");
-
-    // Modal controls
-    openLoginBtn?.addEventListener("click", (e) => {
-        e.preventDefault();
-        loginModal.style.display = "flex";
-        loginForm.classList.remove("hidden");
-        signupForm.classList.add("hidden");
-        clearMessages();
+    // Create user
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const user = await User.create({ 
+      username, 
+      email, 
+      phone, 
+      password: hashedPassword 
     });
 
-    closeModalBtn?.addEventListener("click", () => {
-        loginModal.style.display = "none";
+    // Generate token
+    const token = jwt.sign(
+      { userId: user._id }, 
+      config.JWT_SECRET, 
+      { expiresIn: '2h' }
+    );
+
+    res.status(201).json({ 
+      success: true,
+      token,
+      user: {
+        id: user._id,
+        username: user.username,
+        email: user.email,
+        phone: user.phone
+      }
     });
 
-    window.onclick = (event) => {
-        if (event.target === loginModal) {
-            loginModal.style.display = "none";
-        }
-    };
-
-    // Form toggles
-    showSignUp?.addEventListener("click", (e) => {
-        e.preventDefault();
-        loginForm.classList.add("hidden");
-        signupForm.classList.remove("hidden");
-        clearMessages();
+  } catch (error) {
+    console.error('Signup error:', error);
+    res.status(500).json({ 
+      success: false,
+      error: 'Internal server error' 
     });
+  }
+});
 
-    showLogin?.addEventListener("click", (e) => {
-        e.preventDefault();
-        signupForm.classList.add("hidden");
-        loginForm.classList.remove("hidden");
-        clearMessages();
-    });
+// Login Route
+app.post('/api/login', async (req, res) => {
+  try {
+    const { username, password } = req.body;
 
-    // Login logic
-    loginForm?.addEventListener("submit", async (e) => {
-        e.preventDefault();
-        const username = document.getElementById("login-username").value;
-        const password = document.getElementById("login-password").value;
-
-        try {
-            const response = await fetch("/api/login", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ username, password })
-            });
-
-            const data = await response.json();
-            
-            if (!response.ok) {
-                showLoginError(data.error || "Login failed");
-                return;
-            }
-
-            localStorage.setItem("token", data.token);
-            localStorage.setItem("username", data.user.username);
-            localStorage.setItem("email", data.user.email);
-            
-            showLoginSuccess("Login successful!");
-            setTimeout(() => window.location.reload(), 1000);
-        } catch (error) {
-            showLoginError("Network error. Try again later");
-        }
-    });
-
-    // Signup logic
-    signupForm?.addEventListener("submit", async (e) => {
-        e.preventDefault();
-        const userData = {
-            username: document.getElementById("signup-username").value,
-            email: document.getElementById("signup-email").value,
-            phone: document.getElementById("signup-phone").value,
-            password: document.getElementById("signup-password").value
-        };
-
-        try {
-            const response = await fetch("/api/signup", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(userData)
-            });
-
-            const data = await response.json();
-            
-            if (!response.ok) {
-                showSignupError(data.error || "Signup failed");
-                return;
-            }
-
-            showSignupSuccess("Signup successful!");
-            signupForm.reset();
-            setTimeout(() => {
-                loginForm.classList.remove("hidden");
-                signupForm.classList.add("hidden");
-            }, 1500);
-        } catch (error) {
-            showSignupError("Network error. Try again later");
-        }
-    });
-
-    // Profile management
-    const logoutBtn = document.createElement("button");
-    logoutBtn.textContent = "Logout";
-    logoutBtn.className = "logout-btn hidden";
-
-    // Load user profile
-    const token = localStorage.getItem("token");
-    const username = localStorage.getItem("username");
-    const email = localStorage.getItem("email");
-    
-    if (token && username) {
-        updateUserProfile(username, email);
+    // Validate input
+    if (!username || !password) {
+      return res.status(400).json({ error: 'Username and password required' });
     }
 
-    // Auth state handler
-    window.handleAuthChange = () => {
-        if (localStorage.getItem("token")) {
-            authFields?.classList.add("hidden");
-        } else {
-            authFields?.classList.remove("hidden");
-        }
+    const user = await User.findOne({ username });
+    if (!user) {
+      return res.status(401).json({ error: 'Invalid credentials' });
     }
 
-    // Initial check
-    handleAuthChange();
+    const isPasswordValid = await bcrypt.compare(password, user.password);
+    if (!isPasswordValid) {
+      return res.status(401).json({ error: 'Invalid credentials' });
+    }
 
-    // Profile click handler
-    loggedInUser?.addEventListener("click", (e) => {
-        e.stopPropagation();
-        logoutBtn.classList.toggle("hidden");
+    // Generate token
+    const token = jwt.sign(
+      { userId: user._id }, 
+      config.JWT_SECRET, 
+      { expiresIn: '2h' }
+    );
+
+    res.json({
+      success: true,
+      token,
+      user: {
+        id: user._id,
+        username: user.username,
+        email: user.email,
+        phone: user.phone
+      }
     });
 
-    document.addEventListener("click", () => {
-        logoutBtn.classList.add("hidden");
+  } catch (error) {
+    console.error('Login error:', error);
+    res.status(500).json({ 
+      success: false,
+      error: 'Internal server error' 
+    });
+  }
+});
+
+// Website Request Route (Protected)
+app.post('/api/requests', protect, async (req, res) => {
+  try {
+    const { phone, websiteType, requirements } = req.body;
+
+    // Validate request
+    if (!phone || !websiteType || !requirements) {
+      return res.status(400).json({ error: 'All fields are required' });
+    }
+
+    const newRequest = await WebsiteRequest.create({
+      user: req.user._id,
+      phone,
+      websiteType,
+      requirements
     });
 
-    logoutBtn?.addEventListener("click", () => {
-        localStorage.clear();
-        window.location.reload();
-        handleAuthChange();
+    res.status(201).json({
+      success: true,
+      request: newRequest
     });
 
-    function updateUserProfile(username, email) {
-        loggedInUser.innerHTML = `<span>${username}</span>`;
-        loggedInUser.classList.remove("hidden");
-        openLoginBtn.classList.add("hidden");
-        loggedInUser.parentNode.appendChild(logoutBtn);
-        logoutBtn.classList.remove("hidden");
-    }
-    
-    function clearMessages() {
-        document.getElementById("error-message").textContent = "";
-        document.getElementById("signup-error-message").textContent = "";
-    }
-
-    function showLoginSuccess(message) {
-        const elem = document.getElementById("error-message");
-        elem.style.color = "limegreen";
-        elem.textContent = message;
-    }
-
-    function showLoginError(message) {
-        const elem = document.getElementById("error-message");
-        elem.style.color = "red";
-        elem.textContent = message;
-    }
-
-    function showSignupSuccess(message) {
-        const elem = document.getElementById("signup-error-message");
-        elem.style.color = "limegreen";
-        elem.textContent = message;
-    }
-
-    function showSignupError(message) {
-        const elem = document.getElementById("signup-error-message");
-        elem.style.color = "red";
-        elem.textContent = message;
-    }
-}
-
-// ===== Website Request Form =====
-function initWebsiteRequestForm() {
-    const requestForm = document.getElementById("requestForm");
-    const authFields = document.getElementById("authFields");
-    const requestStatus = document.getElementById("requestStatus");
-    
-    // Check login status on load
-    if (localStorage.getItem("token")) {
-        authFields.classList.add("hidden");
-    }
-
-    requestForm?.addEventListener("submit", async (e) => {
-        e.preventDefault();
-        requestStatus.textContent = "";
-        
-        if (!localStorage.getItem("token")) {
-            requestStatus.textContent = "Please login first!";
-            requestStatus.style.color = "red";
-            return;
-        }
-
-        const formData = {
-            phone: document.getElementById("requestPhone").value,
-            websiteType: document.getElementById("websiteType").value,
-            requirements: document.getElementById("requirements").value
-        };
-
-        try {
-            const response = await fetch("/api/requests", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    "Authorization": `Bearer ${localStorage.getItem("token")}`
-                },
-                body: JSON.stringify(formData)
-            });
-
-            const data = await response.json();
-            
-            if (!response.ok) {
-                throw new Error(data.error || "Request failed");
-            }
-
-            requestStatus.textContent = "Request submitted successfully!";
-            requestStatus.style.color = "green";
-            requestForm.reset();
-            
-            setTimeout(() => {
-                requestStatus.textContent = "";
-            }, 3000);
-
-        } catch (error) {
-            requestStatus.textContent = error.message;
-            requestStatus.style.color = "red";
-        }
+  } catch (error) {
+    console.error('Request error:', error);
+    res.status(500).json({ 
+      success: false,
+      error: 'Failed to create request' 
     });
-}
+  }
+});
+
+// Client-side routing
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
+// ===== Start Server =====
+app.listen(config.PORT, () => {
+  console.log(`🚀 Server running on port ${config.PORT}`);
+});
